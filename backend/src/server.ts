@@ -10,16 +10,29 @@ import { supabaseService } from './services/supabaseService';
 
 const app = express();
 const httpServer = createServer(app);
+// CORS 配置 - 生产环境应设置 ALLOWED_ORIGINS 环境变量
+const getAllowedOrigins = (): string | string[] => {
+  const origins = process.env.ALLOWED_ORIGINS;
+  if (origins) {
+    return origins.split(',').map(o => o.trim());
+  }
+  // 开发环境默认允许所有来源
+  return process.env.NODE_ENV === 'production' ? [] : '*';
+};
+
+const corsOptions = {
+  origin: getAllowedOrigins(),
+  methods: ['GET', 'POST'],
+  credentials: true,
+};
+
 const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
+  cors: corsOptions,
   transports: ['websocket', 'polling'],
 });
 
-// 启用 CORS 中间件（允许所有来源）
-app.use(cors());
+// 启用 CORS 中间件
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Initialize managers

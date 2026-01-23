@@ -11,12 +11,55 @@ export class SocketHandlers {
   private playerManager: PlayerManager;
   private playerNames: Map<string, string> = new Map();
   private spectatorNames: Map<string, string> = new Map(); // 观战者名称映射
-  private ADMIN_PASSWORD = 'admin123'; // 管理员密码
+  private rateLimitMap: Map<string, { count: number; resetTime: number }> = new Map(); // 速率限制
+  private readonly RATE_LIMIT_MAX = 100; // 每分钟最大请求数
+  private readonly RATE_LIMIT_WINDOW = 60000; // 1分钟窗口
+
+  // 管理员密码从环境变量读取，默认值仅用于开发环境
+  private get ADMIN_PASSWORD(): string {
+    return process.env.ADMIN_PASSWORD || 'admin123';
+  }
 
   constructor(roomManager: RoomManager, historyManager: HistoryManager, playerManager: PlayerManager) {
     this.roomManager = roomManager;
     this.historyManager = historyManager;
     this.playerManager = playerManager;
+  }
+
+  // 速率限制检查
+  private checkRateLimit(socketId: string): boolean {
+    const now = Date.now();
+    const record = this.rateLimitMap.get(socketId);
+    
+    if (!record || now > record.resetTime) {
+      this.rateLimitMap.set(socketId, { count: 1, resetTime: now + this.RATE_LIMIT_WINDOW });
+      return true;
+    }
+    
+    if (record.count >= this.RATE_LIMIT_MAX) {
+      return false;
+    }
+    
+    record.count++;
+    return true;
+  }
+
+  // XSS防护 - 清理用户输入
+  private sanitizeInput(input: string, maxLength: number = 100): string {
+    if (typeof input !== 'string') return '';
+    return input
+      .trim()
+      .slice(0, maxLength)
+      .replace(/[<>\"'&]/g, (char) => {
+        const entities: Record<string, string> = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return entities[char] || char;
+      });
   }
 
   async handleConnection(socket: Socket, io: any): Promise<void> {
@@ -86,7 +129,26 @@ export class SocketHandlers {
   }
 
   private handleCreateRoom(socket: Socket, data: { playerName: string; roomName: string }, io: any, callback: any): void {
-    const { playerName, roomName } = data;
+    // 速率限制检查
+    if (!this.checkRateLimit(socket.id)) {
+      callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
+      return;
+    }
+
+    // 输入验证和清理
+    const playerName = this.sanitizeInput(data.playerName, 20);
+    const roomName = this.sanitizeInput(data.roomName, 30);
+
+    if (!playerName || playerName.length < 1) {
+      callback({ success: false, message: 'Invalid player name' });
+      return;
+    }
+
+    if (!roomName || roomName.length < 1) {
+      callback({ success: false, message: 'Invalid room name' });
+      return;
+    }
+
     console.log(`[Socket] Creating room "${roomName}" for player: ${playerName} (${socket.id})`);
 
     // Register or update player in PlayerManager
@@ -121,7 +183,21 @@ export class SocketHandlers {
   }
 
   private handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): void {
-    const { roomId, playerName } = data;
+    // 速率限制检查
+    if (!this.checkRateLimit(socket.id)) {
+      callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
+      return;
+    }
+
+    // 输入验证和清理
+    const roomId = data.roomId;
+    const playerName = this.sanitizeInput(data.playerName, 20);
+
+    if (!playerName || playerName.length < 1) {
+      callback({ success: false, message: 'Invalid player name' });
+      return;
+    }
+
     const room = this.roomManager.getRoom(roomId);
 
     if (!room) {
@@ -199,7 +275,16 @@ export class SocketHandlers {
   }
 
   private handleWatchRoom(socket: Socket, data: { roomId: string; spectatorName: string }, io: any, callback: any): void {
-    const { roomId, spectatorName } = data;
+    // 速率限制检查
+    if (!this.checkRateLimit(socket.id)) {
+      callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
+      return;
+    }
+
+    // 输入验证和清理
+    const roomId = data.roomId;
+    const spectatorName = this.sanitizeInput(data.spectatorName, 20);
+
     const room = this.roomManager.getRoom(roomId);
 
     if (!room) {
@@ -207,7 +292,7 @@ export class SocketHandlers {
       return;
     }
 
-    const result = room.addSpectator(socket.id, spectatorName, socket);
+    const result = room.addSpectator(socket.id, spectatorName || `Spectator-${socket.id.slice(0, 4)}`, socket);
     if (result.success) {
       this.spectatorNames.set(socket.id, spectatorName);
       socket.join(roomId);
@@ -277,7 +362,22 @@ export class SocketHandlers {
   }
 
   private handleMove(socket: Socket, data: { roomId: string; x: number; y: number }, io: any, callback: any): void {
+    // 速率限制检查
+    if (!this.checkRateLimit(socket.id)) {
+      callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
+      return;
+    }
+
     const { roomId, x, y } = data;
+
+    // 坐标验证
+    if (typeof x !== 'number' || typeof y !== 'number' || 
+        x < 0 || x >= 15 || y < 0 || y >= 15 ||
+        !Number.isInteger(x) || !Number.isInteger(y)) {
+      callback({ success: false, message: 'Invalid coordinates' });
+      return;
+    }
+
     const room = this.roomManager.getRoom(roomId);
 
     if (!room) {
@@ -311,7 +411,21 @@ export class SocketHandlers {
   }
 
   private handleChat(socket: Socket, data: { roomId: string; message: string }, io: any, callback: any): void {
-    const { roomId, message } = data;
+    // 速率限制检查
+    if (!this.checkRateLimit(socket.id)) {
+      callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
+      return;
+    }
+
+    const roomId = data.roomId;
+    // 清理聊天消息，防止XSS
+    const message = this.sanitizeInput(data.message, 500);
+
+    if (!message || message.length < 1) {
+      callback({ success: false, message: 'Message cannot be empty' });
+      return;
+    }
+
     const room = this.roomManager.getRoom(roomId);
 
     if (!room) {
