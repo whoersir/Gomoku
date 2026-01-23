@@ -1,0 +1,32 @@
+# 依赖
+node_modules/
+package-lock.json
+
+# 构建产物
+frontend/dist/
+backend/dist/
+*.log
+
+# 环境变量（包含敏感信息）
+.env
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 数据文件
+backend/data/*.json
+backend/data/*.db
+
+# 临时文件
+*.tmp
+temp_*
+
+# CodeBuddy 项目数据
+.codebuddy/

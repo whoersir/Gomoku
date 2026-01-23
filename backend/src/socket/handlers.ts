@@ -1,0 +1,613 @@
+import { Socket } from 'socket.io';
+import { RoomManager } from '../managers/RoomManager';
+import { HistoryManager } from '../managers/HistoryManager';
+import { PlayerManager } from '../managers/PlayerManager';
+import { supabaseService } from '../services/supabaseService';
+import { HistoryRecord } from '../types/game';
+
+export class SocketHandlers {
+  private roomManager: RoomManager;
+  private historyManager: HistoryManager;
+  private playerManager: PlayerManager;
+  private playerNames: Map<string, string> = new Map();
+  private spectatorNames: Map<string, string> = new Map(); // 观战者名称映射
+  private ADMIN_PASSWORD = 'admin123'; // 管理员密码
+
+  constructor(roomManager: RoomManager, historyManager: HistoryManager, playerManager: PlayerManager) {
+    this.roomManager = roomManager;
+    this.historyManager = historyManager;
+    this.playerManager = playerManager;
+  }
+
+  async handleConnection(socket: Socket, io: any): Promise<void> {
+    console.log(`[Socket] Player connected: ${socket.id}`);
+
+    socket.on('createRoom', (data, callback) => {
+      this.handleCreateRoom(socket, data, io, callback);
+    });
+
+    socket.on('joinRoom', (data, callback) => {
+      this.handleJoinRoom(socket, data, io, callback);
+    });
+
+    socket.on('watchRoom', (data, callback) => {
+      this.handleWatchRoom(socket, data, io, callback);
+    });
+
+    socket.on('move', (data, callback) => {
+      this.handleMove(socket, data, io, callback);
+    });
+
+    socket.on('chat', (data, callback) => {
+      this.handleChat(socket, data, io, callback);
+    });
+
+    socket.on('closeRoom', (data, callback) => {
+      this.handleCloseRoom(socket, data, io, callback);
+    });
+
+    socket.on('getRoomList', (data, callback) => {
+      // Handle both cases: with or without data parameter
+      const actualCallback = typeof data === 'function' ? data : callback;
+      this.handleGetRoomList(actualCallback);
+    });
+
+    socket.on('getHistory', (data, callback) => {
+      // Handle both cases: with or without data parameter
+      let actualData = {};
+      let actualCallback = callback;
+
+      if (typeof data === 'function') {
+        actualCallback = data;
+      } else if (typeof data === 'object') {
+        actualData = data;
+      }
+
+      this.handleGetHistory(actualData, actualCallback);
+    });
+
+    socket.on('getLeaderboard', (data, callback) => {
+      // Handle both cases: with or without data parameter
+      const actualCallback = typeof data === 'function' ? data : callback;
+      this.handleGetLeaderboard(actualCallback);
+    });
+
+    socket.on('restartGame', (data, callback) => {
+      this.handleRestartGame(socket, data, io, callback);
+    });
+
+    socket.on('switchToSpectator', (data, callback) => {
+      this.handleSwitchToSpectator(socket, data, io, callback);
+    });
+
+    socket.on('disconnect', () => {
+      this.handleDisconnect(socket, io);
+    });
+  }
+
+  private handleCreateRoom(socket: Socket, data: { playerName: string; roomName: string }, io: any, callback: any): void {
+    const { playerName, roomName } = data;
+    console.log(`[Socket] Creating room "${roomName}" for player: ${playerName} (${socket.id})`);
+
+    // Register or update player in PlayerManager
+    this.playerManager.getOrCreatePlayer(socket.id, playerName);
+    
+    // 同步到Supabase
+    supabaseService.getOrCreatePlayer(socket.id, playerName).catch(err => {
+      console.error('[Socket] Failed to sync player to Supabase:', err);
+    });
+
+    const { roomId, room } = this.roomManager.createRoom(roomName);
+    console.log(`[Socket] Created room: ${roomId} with name: ${roomName}`);
+
+    const result = room.addPlayer(socket.id, playerName, socket);
+    if (result.success) {
+      this.playerNames.set(socket.id, playerName);
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      socket.data.playerName = playerName;
+      socket.data.playerColor = result.color;
+
+      const roomInfo = room.getRoomInfo();
+      io.to(roomId).emit('roomInfo', roomInfo);
+      io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+      console.log(`[Socket] Room ${roomId} created successfully with player ${playerName} (color: ${result.color})`);
+      callback({ success: true, roomId, color: result.color });
+    } else {
+      console.error(`[Socket] Failed to add player to room: ${result.message}`);
+      callback({ success: false, message: result.message });
+    }
+  }
+
+  private handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): void {
+    const { roomId, playerName } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    // Register or update player in PlayerManager
+    this.playerManager.getOrCreatePlayer(socket.id, playerName);
+    
+    // 同步到Supabase
+    supabaseService.getOrCreatePlayer(socket.id, playerName).catch(err => {
+      console.error('[Socket] Failed to sync player to Supabase:', err);
+    });
+
+    const result = room.addPlayer(socket.id, playerName, socket);
+    if (result.success) {
+      this.playerNames.set(socket.id, playerName);
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      socket.data.playerName = playerName;
+      socket.data.playerColor = result.color;
+
+      // Get game state - might be null if waiting for second player
+      let gameState = room.getGameState();
+      const roomInfo = room.getRoomInfo();
+
+      console.log(`[handleJoinRoom] Player ${playerName} joined room ${roomId}, color: ${result.color}`);
+      console.log(`[handleJoinRoom] gameState after addPlayer:`, gameState);
+      console.log(`[handleJoinRoom] roomInfo:`, roomInfo);
+
+      // 第二个玩家加入后，gameState 会被创建。需要立即广播给房间内所有玩家
+      if (gameState) {
+        console.log(`[handleJoinRoom] Game started! Emitting gameStateUpdate to entire room with status: ${gameState.status}`);
+        io.to(roomId).emit('gameStateUpdate', gameState);
+      }
+
+      // 发送 playerJoined 事件
+      io.to(roomId).emit('playerJoined', {
+        playerId: socket.id,
+        playerName,
+        color: result.color,
+      });
+      console.log(`[handleJoinRoom] Emitted playerJoined to room ${roomId}`);
+
+      // 发送 roomInfo 事件
+      io.to(roomId).emit('roomInfo', roomInfo);
+      console.log(`[handleJoinRoom] Emitted roomInfo to room ${roomId}`, roomInfo);
+
+      io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+      // Return gameState even if null - client will receive roomInfo and playerJoined events
+      // to render the UI properly
+      callback({
+        success: true,
+        roomId,
+        color: result.color,
+        gameState: gameState || {
+          roomId,
+          board: Array(15).fill(null).map(() => Array(15).fill(0)),
+          currentPlayer: 1,
+          status: 'waiting',
+          moves: [],
+          players: {
+            black: { id: roomInfo.blackPlayer?.id || '', name: roomInfo.blackPlayer?.name || 'Player 1' },
+            white: { id: roomInfo.whitePlayer?.id || '', name: roomInfo.whitePlayer?.name || 'Waiting...' }
+          },
+          spectators: [],
+          createdAt: Date.now()
+        }
+      });
+    } else {
+      callback({ success: false, message: result.message });
+    }
+  }
+
+  private handleWatchRoom(socket: Socket, data: { roomId: string; spectatorName: string }, io: any, callback: any): void {
+    const { roomId, spectatorName } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    const result = room.addSpectator(socket.id, spectatorName, socket);
+    if (result.success) {
+      this.spectatorNames.set(socket.id, spectatorName);
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      socket.data.spectatorName = spectatorName;
+      socket.data.isSpectator = true;
+
+      // 获取当前游戏状态发送给观战者
+      let gameState = room.getGameState();
+      const roomInfo = room.getRoomInfo();
+
+      console.log(`[handleWatchRoom] Spectator ${spectatorName} started watching room ${roomId}`);
+      console.log(`[handleWatchRoom] gameState:`, gameState);
+
+      // 发送当前游戏状态给观战者
+      if (gameState) {
+        console.log(`[handleWatchRoom] Emitting gameStateUpdate to spectator:`, gameState);
+        socket.emit('gameStateUpdate', gameState);
+      } else {
+        // 如果游戏还未开始，发送等待状态
+        const waitingState = {
+          roomId,
+          roomName: roomInfo.roomName || '',
+          board: Array(15).fill(null).map(() => Array(15).fill(0)),
+          currentPlayer: 1,
+          status: 'waiting',
+          moves: [],
+          players: {
+            black: roomInfo.blackPlayer || { id: '', name: 'Player 1' },
+            white: roomInfo.whitePlayer || { id: '', name: 'Waiting...' }
+          },
+          spectators: [],
+          createdAt: Date.now()
+        };
+        console.log(`[handleWatchRoom] Emitting waiting gameStateUpdate to spectator:`, waitingState);
+        socket.emit('gameStateUpdate', waitingState);
+      }
+
+      // 发送房间信息
+      io.to(roomId).emit('roomInfo', roomInfo);
+      console.log(`[handleWatchRoom] Emitted roomInfo to room ${roomId}`);
+
+      // 广播更新房间列表
+      io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+      callback({
+        success: true,
+        roomId,
+        isSpectator: true,
+        gameState: gameState || {
+          roomId,
+          roomName: roomInfo.roomName || '',
+          board: Array(15).fill(null).map(() => Array(15).fill(0)),
+          currentPlayer: 1,
+          status: 'waiting',
+          moves: [],
+          players: {
+            black: { id: '', name: roomInfo.blackPlayer?.name || 'Player 1' },
+            white: { id: '', name: roomInfo.whitePlayer?.name || 'Waiting...' }
+          },
+          createdAt: Date.now()
+        }
+      });
+    } else {
+      callback({ success: false, message: result.message });
+    }
+  }
+
+  private handleMove(socket: Socket, data: { roomId: string; x: number; y: number }, io: any, callback: any): void {
+    const { roomId, x, y } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    console.log(`[handleMove] socket.id: ${socket.id}, playerColor: ${socket.data.playerColor}, attempting move at (${x}, ${y})`);
+    const moveResult = room.makeMove(socket.id, x, y);
+    console.log(`[handleMove] moveResult:`, moveResult);
+    
+    if (moveResult.success) {
+      const gameState = moveResult.gameState!;
+      io.to(roomId).emit('gameStateUpdate', gameState);
+      io.to(roomId).emit('moveMade', {
+        x,
+        y,
+        player: socket.data.playerColor,
+        timestamp: Date.now(),
+      });
+
+      if (gameState.status === 'finished') {
+        this.handleGameFinished(roomId, gameState, room, io);
+      }
+
+      callback({ success: true });
+    } else {
+      console.log(`[handleMove] Move failed for socket ${socket.id}: ${moveResult.message}`);
+      callback({ success: false, message: moveResult.message });
+    }
+  }
+
+  private handleChat(socket: Socket, data: { roomId: string; message: string }, io: any, callback: any): void {
+    const { roomId, message } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    const playerName = socket.data.playerName || 'Anonymous';
+    const chatMessage = room.addMessage(socket.id, playerName, message);
+    io.to(roomId).emit('newMessage', chatMessage);
+    callback({ success: true });
+  }
+
+  private handleGetRoomList(callback: any): void {
+    const roomList = this.roomManager.getRoomList();
+    if (typeof callback === 'function') {
+      callback(roomList);
+    } else {
+      console.warn('[Socket] handleGetRoomList: callback is not a function', typeof callback);
+    }
+  }
+
+  private async handleGetHistory(data: { limit?: number; offset?: number }, callback: any): Promise<void> {
+    if (typeof callback !== 'function') {
+      console.warn('[Socket] handleGetHistory: callback is not a function', typeof callback);
+      return;
+    }
+
+    const { limit = 100, offset = 0 } = data || {};
+    const result = await this.historyManager.getRecords(limit, offset);
+    callback(result);
+  }
+
+  private async handleGetLeaderboard(callback: any): Promise<void> {
+    if (typeof callback !== 'function') {
+      console.warn('[Socket] handleGetLeaderboard: callback is not a function', typeof callback);
+      return;
+    }
+
+    try {
+      // 优先从Supabase获取排行榜
+      const supabaseLeaderboard = await supabaseService.getLeaderboard(10);
+      if (supabaseLeaderboard.length > 0) {
+        console.log(`[Socket] Sending Supabase leaderboard with ${supabaseLeaderboard.length} players`);
+        callback(supabaseLeaderboard);
+        return;
+      }
+    } catch (err) {
+      console.error('[Socket] Failed to get Supabase leaderboard, fallback to local:', err);
+    }
+
+    // 降级到本地排行榜
+    const leaderboard = this.playerManager.getLeaderboard(10);
+    console.log(`[Socket] Sending local leaderboard with ${leaderboard.length} players`);
+    callback(leaderboard);
+  }
+
+  private async handleGameFinished(roomId: string, gameState: any, _room: any, io: any): Promise<void> {
+    io.to(roomId).emit('gameFinished', {
+      winner: gameState.winner,
+      moveCount: gameState.moves.length,
+    });
+
+    const historyRecord: HistoryRecord = {
+      roomId,
+      blackPlayer: gameState.players.black,
+      whitePlayer: gameState.players.white,
+      winner: gameState.winner,
+      moveCount: gameState.moves.length,
+      createdAt: gameState.createdAt,
+      finishedAt: gameState.finishedAt!,
+      duration: gameState.finishedAt! - gameState.createdAt,
+    };
+
+    await this.historyManager.saveRecord(historyRecord);
+
+    // 保存到Supabase
+    try {
+      await supabaseService.saveGameRecord({
+        roomId,
+        roomName: gameState.roomName,
+        blackPlayer: gameState.players.black,
+        whitePlayer: gameState.players.white,
+        winner: gameState.winner,
+        moves: gameState.moves,
+        createdAt: gameState.createdAt,
+        finishedAt: gameState.finishedAt,
+      });
+
+      // 更新玩家积分到Supabase
+      const isDraw = gameState.winner === 'draw';
+      if (isDraw) {
+        await supabaseService.updatePlayerGameResult(gameState.players.black.id, false, true);
+        await supabaseService.updatePlayerGameResult(gameState.players.white.id, false, true);
+      } else if (gameState.winner) {
+        const winnerId = gameState.winner === 1 ? gameState.players.black.id : gameState.players.white.id;
+        const loserId = gameState.winner === 1 ? gameState.players.white.id : gameState.players.black.id;
+        await supabaseService.updatePlayerGameResult(winnerId, true, false);
+        await supabaseService.updatePlayerGameResult(loserId, false, false);
+      }
+    } catch (err) {
+      console.error('[Socket] Failed to save game to Supabase:', err);
+    }
+
+    // Record game result in PlayerManager (本地备份)
+    if (gameState.winner && gameState.winner !== 'draw') {
+      const winnerId = gameState.winner === 1 ? gameState.players.black.id : gameState.players.white.id;
+      const loserId = gameState.winner === 1 ? gameState.players.white.id : gameState.players.black.id;
+      this.playerManager.recordGameResult(winnerId, loserId);
+    }
+  }
+
+  private handleCloseRoom(socket: Socket, data: { roomId: string; adminPassword?: string }, io: any, callback: any): void {
+    try {
+      const { roomId, adminPassword } = data;
+      console.log(`[handleCloseRoom] Received closeRoom request - roomId: ${roomId}, adminPassword: ${adminPassword ? '***' : 'undefined'}, socket.id: ${socket.id}`);
+
+      const room = this.roomManager.getRoom(roomId);
+      if (!room) {
+        console.log(`[handleCloseRoom] Room ${roomId} not found`);
+        callback({ success: false, message: 'Room not found' });
+        return;
+      }
+
+      // Check if the player is the room owner (black player who created the room) or admin
+      const socketPlayerId = socket.id;
+      const blackPlayer = room.getRoomInfo().blackPlayer;
+      const isAdmin = adminPassword === this.ADMIN_PASSWORD;
+
+      console.log(`[handleCloseRoom] Permission check - socketPlayerId: ${socketPlayerId}, blackPlayer.id: ${blackPlayer?.id}, isAdmin: ${isAdmin}, ADMIN_PASSWORD: ${this.ADMIN_PASSWORD ? '***' : 'undefined'}`);
+
+      // Allow if room owner OR admin
+      if (blackPlayer?.id === socketPlayerId || isAdmin) {
+        console.log(`[Socket] Closing room ${roomId} by ${isAdmin ? 'admin' : 'owner'} ${socket.id}`);
+
+        // Notify all players in the room that it's being closed
+        io.to(roomId).emit('roomClosed', {
+          roomId,
+          reason: isAdmin ? 'Room closed by admin' : 'Room closed by owner',
+        });
+
+        // Remove the room
+        this.roomManager.removeRoom(roomId);
+
+        // Update room list for all clients
+        io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+        console.log(`[handleCloseRoom] Room ${roomId} closed successfully, calling callback`);
+        callback({ success: true, message: 'Room closed successfully' });
+      } else {
+        console.log(`[handleCloseRoom] Permission denied - not room owner or admin`);
+        callback({ success: false, message: 'Only the room owner or admin can close the room' });
+      }
+    } catch (error) {
+      console.error(`[handleCloseRoom] Error closing room:`, error);
+      callback({ success: false, message: 'Internal server error' });
+    }
+  }
+
+  private handleRestartGame(socket: Socket, data: { roomId: string }, io: any, callback: any): void {
+    const { roomId } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    console.log(`[Socket] Restarting game in room ${roomId} by ${socket.id}`);
+
+    // Reset the game state
+    const newGameState = room.restartGame();
+
+    // Broadcast the new game state to all players and spectators in the room
+    io.to(roomId).emit('gameStateUpdate', newGameState);
+    io.to(roomId).emit('roomInfo', room.getRoomInfo());
+    io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+    console.log(`[Socket] Game restarted in room ${roomId}`);
+    callback({ success: true, gameState: newGameState });
+  }
+
+  private handleSwitchToSpectator(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): void {
+    const { roomId, playerName } = data;
+    const room = this.roomManager.getRoom(roomId);
+
+    if (!room) {
+      callback({ success: false, message: 'Room not found' });
+      return;
+    }
+
+    const playerColor = socket.data.playerColor;
+
+    if (!playerColor) {
+      callback({ success: false, message: 'You are not a player in this room' });
+      return;
+    }
+
+    console.log(`[Socket] Player ${socket.id} switching to spectator in room ${roomId}`);
+
+    // Remove player from the room
+    room.removePlayer(socket.id);
+    this.playerNames.delete(socket.id);
+
+    // Add as spectator
+    const spectatorName = playerName || this.playerNames.get(socket.id) || `Spectator-${socket.id.slice(0, 4)}`;
+    room.addSpectator(socket.id, spectatorName, socket);
+    this.spectatorNames.set(socket.id, spectatorName);
+
+    // Update socket data
+    socket.data.playerColor = null;
+    socket.data.isSpectator = true;
+
+    // Get updated game state
+    const gameState = room.getGameState();
+    const roomInfo = room.getRoomInfo();
+
+    // Notify all in the room
+    io.to(roomId).emit('playerLeft', {
+      playerId: socket.id,
+      playerName: spectatorName,
+    });
+    io.to(roomId).emit('gameStateUpdate', gameState);
+    io.to(roomId).emit('roomInfo', roomInfo);
+    io.emit('roomListUpdate', this.roomManager.getRoomList());
+
+    console.log(`[Socket] Player switched to spectator in room ${roomId}`);
+    callback({ success: true, gameState });
+  }
+
+  private handleDisconnect(socket: Socket, io: any): void {
+    const roomId = socket.data.roomId;
+    const isSpectator = socket.data.isSpectator;
+
+    if (roomId) {
+      const room = this.roomManager.getRoom(roomId);
+      if (room) {
+        if (isSpectator) {
+          // 观战者断开连接
+          room.removeSpectator(socket.id);
+          console.log(`[Socket] Spectator disconnected: ${socket.id}`);
+          this.spectatorNames.delete(socket.id);
+          
+          // 发送更新的房间信息
+          io.to(roomId).emit('roomInfo', room.getRoomInfo());
+        } else {
+          // 玩家断开连接
+          const playerName = socket.data.playerName;
+          const playerColor = socket.data.playerColor;
+          
+          room.removePlayer(socket.id);
+
+          if (room.isEmpty()) {
+            this.roomManager.removeRoom(roomId);
+            io.emit('roomListUpdate', this.roomManager.getRoomList());
+          } else {
+            // 发送玩家离开事件
+            io.to(roomId).emit('playerLeft', {
+              playerId: socket.id,
+              playerName,
+              playerColor, // 添加玩家颜色信息
+            });
+
+            // 发送更新的房间信息
+            const roomInfo = room.getRoomInfo();
+            io.to(roomId).emit('roomInfo', roomInfo);
+            
+            // 发送更新的游戏状态 - 重要：这会清空离开玩家的信息
+            const gameState = room.getGameState();
+            if (gameState) {
+              io.to(roomId).emit('gameStateUpdate', gameState);
+            } else {
+              // 游戏引擎被清除，发送等待状态
+              io.to(roomId).emit('gameStateUpdate', {
+                roomId,
+                roomName: roomInfo.roomName || '',
+                board: Array(15).fill(null).map(() => Array(15).fill(0)),
+                currentPlayer: 1,
+                status: 'waiting',
+                moves: [],
+                players: {
+                  black: roomInfo.blackPlayer || { id: '', name: 'Waiting...' },
+                  white: roomInfo.whitePlayer || { id: '', name: 'Waiting...' }
+                },
+                spectators: roomInfo.spectators || [],
+                createdAt: Date.now()
+              });
+            }
+            
+            io.emit('roomListUpdate', this.roomManager.getRoomList());
+          }
+          this.playerNames.delete(socket.id);
+        }
+      }
+    }
+
+    console.log(`[Socket] Player disconnected: ${socket.id}`);
+  }
+}
