@@ -104,7 +104,7 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
 
   return (
     <div 
-      className="fixed top-4 right-4 z-[9999] bg-dark-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-dark-text-tertiary/30 shadow-lg"
+      className="fixed bottom-4 left-4 z-[9999] bg-dark-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-dark-text-tertiary/30 shadow-lg"
       style={{ zIndex: 9999 }}
     >
       <audio 
