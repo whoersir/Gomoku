@@ -284,7 +284,10 @@ function App() {
       {page === 'game' && gameState.gameState && (
         <div className="min-h-screen py-8 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
           {/* BGM Player - 在游戏页面时播放 */}
-          <BGMPlayer isPlaying={true} volume={0.5} loop={true} />
+          {(() => {
+            console.log('[App] Rendering BGMPlayer, page:', page, 'gameState:', gameState.gameState);
+            return <BGMPlayer isPlaying={true} volume={0.5} loop={true} />;
+          })()}
           
           <div className="mb-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold">

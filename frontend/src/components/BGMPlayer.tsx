@@ -14,30 +14,63 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentVolume, setCurrentVolume] = useState(volume);
   const [isMuted, setIsMuted] = useState(false);
+  const [isAudioReady, setIsAudioReady] = useState(false);
+
+  console.log('[BGMPlayer] Rendering with isPlaying:', isPlaying, 'volume:', currentVolume);
 
   useEffect(() => {
+    console.log('[BGMPlayer] Component mounted, setting up audio');
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) {
+      console.error('[BGMPlayer] Audio element not found');
+      return;
+    }
+
+    const handleCanPlay = () => {
+      console.log('[BGMPlayer] Audio can play');
+      setIsAudioReady(true);
+    };
+
+    const handleError = (err: Event) => {
+      console.error('[BGMPlayer] Audio error:', err);
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      console.log('[BGMPlayer] Component unmounting, cleaning up');
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('error', handleError);
+      audio.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('[BGMPlayer] Play state changed:', isPlaying);
+    const audio = audioRef.current;
+    if (!audio) {
+      console.error('[BGMPlayer] Audio element not found');
+      return;
+    }
 
     audio.volume = isMuted ? 0 : currentVolume;
     audio.loop = loop;
 
-    if (isPlaying && !isMuted) {
+    if (isPlaying && !isMuted && isAudioReady) {
+      console.log('[BGMPlayer] Attempting to play audio');
       audio.play().catch((err) => {
-        console.warn('[BGMPlayer] Failed to play BGM:', err);
+        console.error('[BGMPlayer] Failed to play BGM:', err);
       });
     } else {
+      console.log('[BGMPlayer] Pausing audio');
       audio.pause();
     }
-
-    // 清理函数：组件卸载时暂停播放
-    return () => {
-      audio.pause();
-    };
-  }, [isPlaying, currentVolume, isMuted, loop]);
+  }, [isPlaying, currentVolume, isMuted, loop, isAudioReady]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
+    console.log('[BGMPlayer] Volume changed to:', newVolume);
     setCurrentVolume(newVolume);
     setIsMuted(newVolume === 0);
     if (audioRef.current) {
@@ -49,10 +82,11 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
+    console.log('[BGMPlayer] Toggle play clicked, paused:', audio.paused);
     if (audio.paused) {
       setIsMuted(false);
       audio.play().catch((err) => {
-        console.warn('[BGMPlayer] Failed to play BGM:', err);
+        console.error('[BGMPlayer] Failed to play BGM:', err);
       });
     } else {
       audio.pause();
@@ -60,15 +94,26 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
   };
 
   const toggleMute = () => {
-    setIsMuted(!isMuted);
+    const newMutedState = !isMuted;
+    console.log('[BGMPlayer] Toggle mute clicked, new state:', newMutedState);
+    setIsMuted(newMutedState);
     if (audioRef.current) {
-      audioRef.current.volume = isMuted ? currentVolume : 0;
+      audioRef.current.volume = newMutedState ? 0 : currentVolume;
     }
   };
 
   return (
-    <div className="fixed top-4 right-4 z-50 bg-dark-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-dark-text-tertiary/30 shadow-lg">
-      <audio ref={audioRef} src="/BGM.wav" preload="auto" />
+    <div 
+      className="fixed top-4 right-4 z-[9999] bg-dark-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-dark-text-tertiary/30 shadow-lg"
+      style={{ zIndex: 9999 }}
+    >
+      <audio 
+        ref={audioRef} 
+        src="/BGM.wav" 
+        preload="auto" 
+        onCanPlay={() => console.log('[BGMPlayer] Audio can play event')}
+        onError={(e) => console.error('[BGMPlayer] Audio error event:', e)}
+      />
       
       <div className="flex items-center gap-3">
         <button
