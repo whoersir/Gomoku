@@ -3,7 +3,7 @@ import { RoomManager } from '../managers/RoomManager';
 import { HistoryManager } from '../managers/HistoryManager';
 import { PlayerManager } from '../managers/PlayerManager';
 import { supabaseService } from '../services/supabaseService';
-import { HistoryRecord } from '../types/game';
+import { HistoryRecord, GameState } from '../types/game';
 
 export class SocketHandlers {
   private roomManager: RoomManager;
@@ -24,6 +24,64 @@ export class SocketHandlers {
     this.roomManager = roomManager;
     this.historyManager = historyManager;
     this.playerManager = playerManager;
+  }
+
+  // 为游戏状态附加玩家统计信息
+  private async attachPlayerStats(gameState: GameState | null): Promise<GameState | null> {
+    if (!gameState) return null;
+    
+    try {
+      // 并行获取黑白双方的统计信息
+      const [blackStats, whiteStats] = await Promise.all([
+        gameState.players.black.name && gameState.players.black.name !== 'Waiting...'
+          ? supabaseService.getPlayerStatsByName(gameState.players.black.name)
+          : null,
+        gameState.players.white.name && gameState.players.white.name !== 'Waiting...'
+          ? supabaseService.getPlayerStatsByName(gameState.players.white.name)
+          : null,
+      ]);
+
+      // 附加统计信息
+      if (blackStats) {
+        gameState.players.black.stats = blackStats;
+      }
+      if (whiteStats) {
+        gameState.players.white.stats = whiteStats;
+      }
+    } catch (error) {
+      console.error('[Socket] Failed to attach player stats:', error);
+    }
+
+    return gameState;
+  }
+
+  // 为房间信息附加玩家统计信息
+  private async attachRoomInfoPlayerStats(roomInfo: any): Promise<any> {
+    if (!roomInfo) return roomInfo;
+    
+    try {
+      // 并行获取黑白双方的统计信息
+      const [blackStats, whiteStats] = await Promise.all([
+        roomInfo.blackPlayer?.name && roomInfo.blackPlayer.name !== 'Waiting...'
+          ? supabaseService.getPlayerStatsByName(roomInfo.blackPlayer.name)
+          : null,
+        roomInfo.whitePlayer?.name && roomInfo.whitePlayer.name !== 'Waiting...'
+          ? supabaseService.getPlayerStatsByName(roomInfo.whitePlayer.name)
+          : null,
+      ]);
+
+      // 附加统计信息
+      if (blackStats && roomInfo.blackPlayer) {
+        roomInfo.blackPlayer.stats = blackStats;
+      }
+      if (whiteStats && roomInfo.whitePlayer) {
+        roomInfo.whitePlayer.stats = whiteStats;
+      }
+    } catch (error) {
+      console.error('[Socket] Failed to attach room info player stats:', error);
+    }
+
+    return roomInfo;
   }
 
   // 速率限制检查
@@ -128,7 +186,7 @@ export class SocketHandlers {
     });
   }
 
-  private handleCreateRoom(socket: Socket, data: { playerName: string; roomName: string }, io: any, callback: any): void {
+  private async handleCreateRoom(socket: Socket, data: { playerName: string; roomName: string }, io: any, callback: any): Promise<void> {
     // 速率限制检查
     if (!this.checkRateLimit(socket.id)) {
       callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
@@ -170,7 +228,10 @@ export class SocketHandlers {
       socket.data.playerName = playerName;
       socket.data.playerColor = result.color;
 
-      const roomInfo = room.getRoomInfo();
+      // 获取并附加玩家统计信息
+      let roomInfo = room.getRoomInfo();
+      roomInfo = await this.attachRoomInfoPlayerStats(roomInfo);
+      
       io.to(roomId).emit('roomInfo', roomInfo);
       io.emit('roomListUpdate', this.roomManager.getRoomList());
 
@@ -182,7 +243,7 @@ export class SocketHandlers {
     }
   }
 
-  private handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): void {
+  private async handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): Promise<void> {
     // 速率限制检查
     if (!this.checkRateLimit(socket.id)) {
       callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
@@ -223,7 +284,7 @@ export class SocketHandlers {
 
       // Get game state - might be null if waiting for second player
       let gameState = room.getGameState();
-      const roomInfo = room.getRoomInfo();
+      let roomInfo = room.getRoomInfo();
 
       console.log(`[handleJoinRoom] Player ${playerName} joined room ${roomId}, color: ${result.color}`);
       console.log(`[handleJoinRoom] gameState after addPlayer:`, gameState);
@@ -231,7 +292,9 @@ export class SocketHandlers {
 
       // 第二个玩家加入后，gameState 会被创建。需要立即广播给房间内所有玩家
       if (gameState) {
-        console.log(`[handleJoinRoom] Game started! Emitting gameStateUpdate to entire room with status: ${gameState.status}`);
+        // 附加玩家统计信息
+        gameState = await this.attachPlayerStats(gameState);
+        console.log(`[handleJoinRoom] Game started! Emitting gameStateUpdate to entire room with status: ${gameState?.status}`);
         io.to(roomId).emit('gameStateUpdate', gameState);
       }
 
@@ -243,7 +306,8 @@ export class SocketHandlers {
       });
       console.log(`[handleJoinRoom] Emitted playerJoined to room ${roomId}`);
 
-      // 发送 roomInfo 事件
+      // 发送 roomInfo 事件（附加玩家统计信息）
+      roomInfo = await this.attachRoomInfoPlayerStats(roomInfo);
       io.to(roomId).emit('roomInfo', roomInfo);
       console.log(`[handleJoinRoom] Emitted roomInfo to room ${roomId}`, roomInfo);
 
@@ -262,8 +326,16 @@ export class SocketHandlers {
           status: 'waiting',
           moves: [],
           players: {
-            black: { id: roomInfo.blackPlayer?.id || '', name: roomInfo.blackPlayer?.name || 'Player 1' },
-            white: { id: roomInfo.whitePlayer?.id || '', name: roomInfo.whitePlayer?.name || 'Waiting...' }
+            black: { 
+              id: roomInfo.blackPlayer?.id || '', 
+              name: roomInfo.blackPlayer?.name || 'Player 1',
+              stats: (roomInfo.blackPlayer as any)?.stats
+            },
+            white: { 
+              id: roomInfo.whitePlayer?.id || '', 
+              name: roomInfo.whitePlayer?.name || 'Waiting...',
+              stats: (roomInfo.whitePlayer as any)?.stats
+            }
           },
           spectators: [],
           createdAt: Date.now()
@@ -274,7 +346,7 @@ export class SocketHandlers {
     }
   }
 
-  private handleWatchRoom(socket: Socket, data: { roomId: string; spectatorName: string }, io: any, callback: any): void {
+  private async handleWatchRoom(socket: Socket, data: { roomId: string; spectatorName: string }, io: any, callback: any): Promise<void> {
     // 速率限制检查
     if (!this.checkRateLimit(socket.id)) {
       callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
@@ -309,6 +381,8 @@ export class SocketHandlers {
 
       // 发送当前游戏状态给观战者
       if (gameState) {
+        // 附加玩家统计信息
+        gameState = await this.attachPlayerStats(gameState);
         console.log(`[handleWatchRoom] Emitting gameStateUpdate to spectator:`, gameState);
         socket.emit('gameStateUpdate', gameState);
       } else {
@@ -361,7 +435,7 @@ export class SocketHandlers {
     }
   }
 
-  private handleMove(socket: Socket, data: { roomId: string; x: number; y: number }, io: any, callback: any): void {
+  private async handleMove(socket: Socket, data: { roomId: string; x: number; y: number }, io: any, callback: any): Promise<void> {
     // 速率限制检查
     if (!this.checkRateLimit(socket.id)) {
       callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
@@ -390,7 +464,9 @@ export class SocketHandlers {
     console.log(`[handleMove] moveResult:`, moveResult);
     
     if (moveResult.success) {
-      const gameState = moveResult.gameState!;
+      let gameState = moveResult.gameState!;
+      // 附加玩家统计信息
+      gameState = (await this.attachPlayerStats(gameState))!;
       io.to(roomId).emit('gameStateUpdate', gameState);
       io.to(roomId).emit('moveMade', {
         x,
@@ -585,7 +661,7 @@ export class SocketHandlers {
     }
   }
 
-  private handleRestartGame(socket: Socket, data: { roomId: string }, io: any, callback: any): void {
+  private async handleRestartGame(socket: Socket, data: { roomId: string }, io: any, callback: any): Promise<void> {
     const { roomId } = data;
     const room = this.roomManager.getRoom(roomId);
 
@@ -597,7 +673,10 @@ export class SocketHandlers {
     console.log(`[Socket] Restarting game in room ${roomId} by ${socket.id}`);
 
     // Reset the game state
-    const newGameState = room.restartGame();
+    let newGameState = room.restartGame();
+    
+    // 附加玩家统计信息
+    newGameState = (await this.attachPlayerStats(newGameState))!;
 
     // Broadcast the new game state to all players and spectators in the room
     io.to(roomId).emit('gameStateUpdate', newGameState);
@@ -608,7 +687,7 @@ export class SocketHandlers {
     callback({ success: true, gameState: newGameState });
   }
 
-  private handleSwitchToSpectator(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): void {
+  private async handleSwitchToSpectator(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): Promise<void> {
     const { roomId, playerName } = data;
     const room = this.roomManager.getRoom(roomId);
 
@@ -664,6 +743,9 @@ export class SocketHandlers {
         createdAt: Date.now()
       };
     }
+    
+    // 附加玩家统计信息
+    gameState = (await this.attachPlayerStats(gameState))!;
 
     // Notify all in the room
     io.to(roomId).emit('playerLeft', {

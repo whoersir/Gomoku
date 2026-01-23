@@ -468,6 +468,44 @@ export class SupabaseService {
   }
 
   /**
+   * 根据玩家名称获取统计信息
+   */
+  async getPlayerStatsByName(name: string): Promise<{
+    score: number;
+    totalGames: number;
+    wins: number;
+    losses: number;
+    winRate: number;
+  } | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('players')
+        .select('score, total_games, wins, losses')
+        .eq('name', name)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      const totalGames = data.total_games || 0;
+      const wins = data.wins || 0;
+      const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+      return {
+        score: data.score || 0,
+        totalGames,
+        wins,
+        losses: data.losses || 0,
+        winRate,
+      };
+    } catch (error) {
+      console.error('[Supabase] getPlayerStatsByName error:', error);
+      return null;
+    }
+  }
+
+  /**
    * 获取玩家排名
    */
   async getPlayerRank(socketId: string): Promise<number | null> {

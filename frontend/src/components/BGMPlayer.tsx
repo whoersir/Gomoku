@@ -16,30 +16,17 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isAudioReady, setIsAudioReady] = useState(false);
 
-  console.log('[BGMPlayer] Rendering with isPlaying:', isPlaying, 'volume:', currentVolume);
-
   useEffect(() => {
-    console.log('[BGMPlayer] Component mounted, setting up audio');
     const audio = audioRef.current;
-    if (!audio) {
-      console.error('[BGMPlayer] Audio element not found');
-      return;
-    }
+    if (!audio) return;
 
-    const handleCanPlay = () => {
-      console.log('[BGMPlayer] Audio can play');
-      setIsAudioReady(true);
-    };
-
-    const handleError = (err: Event) => {
-      console.error('[BGMPlayer] Audio error:', err);
-    };
+    const handleCanPlay = () => setIsAudioReady(true);
+    const handleError = (err: Event) => console.error('[BGMPlayer] Audio error:', err);
 
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('error', handleError);
 
     return () => {
-      console.log('[BGMPlayer] Component unmounting, cleaning up');
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
       audio.pause();
@@ -47,30 +34,23 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
   }, []);
 
   useEffect(() => {
-    console.log('[BGMPlayer] Play state changed:', isPlaying);
     const audio = audioRef.current;
-    if (!audio) {
-      console.error('[BGMPlayer] Audio element not found');
-      return;
-    }
+    if (!audio) return;
 
     audio.volume = isMuted ? 0 : currentVolume;
     audio.loop = loop;
 
     if (isPlaying && !isMuted && isAudioReady) {
-      console.log('[BGMPlayer] Attempting to play audio');
       audio.play().catch((err) => {
         console.error('[BGMPlayer] Failed to play BGM:', err);
       });
     } else {
-      console.log('[BGMPlayer] Pausing audio');
       audio.pause();
     }
   }, [isPlaying, currentVolume, isMuted, loop, isAudioReady]);
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
-    console.log('[BGMPlayer] Volume changed to:', newVolume);
     setCurrentVolume(newVolume);
     setIsMuted(newVolume === 0);
     if (audioRef.current) {
@@ -82,7 +62,6 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
     const audio = audioRef.current;
     if (!audio) return;
 
-    console.log('[BGMPlayer] Toggle play clicked, paused:', audio.paused);
     if (audio.paused) {
       setIsMuted(false);
       audio.play().catch((err) => {
@@ -95,7 +74,6 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
 
   const toggleMute = () => {
     const newMutedState = !isMuted;
-    console.log('[BGMPlayer] Toggle mute clicked, new state:', newMutedState);
     setIsMuted(newMutedState);
     if (audioRef.current) {
       audioRef.current.volume = newMutedState ? 0 : currentVolume;
@@ -111,10 +89,8 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
         ref={audioRef}
         src="/BGM.wav"
         preload="auto"
-        onCanPlay={() => console.log('[BGMPlayer] Audio can play event')}
-        onError={(e) => console.error('[BGMPlayer] Audio error event:', e)}
       />
-      
+
       <div className="flex items-center gap-3">
         <button
           onClick={togglePlay}
@@ -123,7 +99,7 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
         >
           {isPlaying ? '🔊' : '🔇'}
         </button>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={toggleMute}
@@ -132,7 +108,7 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
           >
             {isMuted ? '🔕' : '🔔'}
           </button>
-          
+
           <span className="text-xs text-dark-text-secondary">🎵</span>
           <input
             type="range"

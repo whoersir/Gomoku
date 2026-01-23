@@ -22,6 +22,10 @@ export const useGameState = () => {
   const [playerLeftNotice, setPlayerLeftNotice] = useState<PlayerLeftEvent | null>(null);
 
   const joinedRoom = useCallback((color: 1 | 2, initialGameState?: GameState) => {
+    console.log('[useGameState] joinedRoom called with color:', color);
+    console.log('[useGameState] initialGameState:', initialGameState);
+    console.log('[useGameState] initialGameState.players?.black?.stats:', initialGameState?.players?.black?.stats);
+    console.log('[useGameState] initialGameState.players?.white?.stats:', initialGameState?.players?.white?.stats);
     setPlayerColor(color);
     setIsSpectator(false); // 加入房间时不是观战
     if (initialGameState) {

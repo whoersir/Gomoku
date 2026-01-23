@@ -144,18 +144,36 @@ export class Room {
   }
 
   restartGame(): GameState {
-    if (!this.blackPlayer || !this.whitePlayer) {
-      throw new Error('Cannot restart game: missing players');
+    console.log(`[Room.restartGame] Restarting game for room ${this.roomId} (${this.roomName})`);
+    console.log(`[Room.restartGame] Current players - black: ${!!this.blackPlayer}, white: ${!!this.whitePlayer}`);
+
+    // 只有当两个玩家都在时才重启游戏
+    if (this.blackPlayer && this.whitePlayer) {
+      this.gameEngine = new GameEngine(this.roomId, this.roomName, this.blackPlayer, this.whitePlayer);
+      const gameState = this.gameEngine.getGameState();
+      console.log(`[Room.restartGame] Game restarted, new gameState:`, gameState);
+      return gameState;
     }
 
-    console.log(`[Room.restartGame] Restarting game for room ${this.roomId} (${this.roomName})`);
-
-    // Reset the game engine with the same players
-    this.gameEngine = new GameEngine(this.roomId, this.roomName, this.blackPlayer, this.whitePlayer);
-    const gameState = this.gameEngine.getGameState();
-
-    console.log(`[Room.restartGame] Game restarted, new gameState:`, gameState);
-    return gameState;
+    // 如果只有一个玩家或没有玩家，清除游戏引擎，返回等待状态
+    this.gameEngine = null;
+    console.log(`[Room.restartGame] Game cleared, waiting for players`);
+    
+    // 返回一个等待状态
+    return {
+      roomId: this.roomId,
+      roomName: this.roomName,
+      board: Array(15).fill(null).map(() => Array(15).fill(0)),
+      currentPlayer: 1,
+      status: 'waiting',
+      moves: [],
+      players: {
+        black: this.blackPlayer || { id: '', name: 'Waiting...' },
+        white: this.whitePlayer || { id: '', name: 'Waiting...' }
+      },
+      spectators: this.getSpectators(),
+      createdAt: Date.now()
+    };
   }
 
   makeMove(playerId: string, x: number, y: number) {

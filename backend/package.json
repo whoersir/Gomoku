@@ -1,12 +1,27 @@
 {
-  "name": "gomoku-server",
-  "version": "1.0.0",
+  "name": "@whoersir/gomoku-server",
+  "version": "1.0.2",
   "description": "Gomoku LAN game server",
   "main": "dist/server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whoersir/Gomoku.git"
+  },
+  "author": "whoersir",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/whoersir/Gomoku/issues"
+  },
+  "homepage": "https://github.com/whoersir/Gomoku#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "scripts": {
     "dev": "ts-node src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "build:prod": "tsc",
+    "publish": "npm publish"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

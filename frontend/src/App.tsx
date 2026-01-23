@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { ConnectDialog } from './components/ConnectDialog';
 import { RoomList } from './components/RoomList';
 import { GameBoard } from './components/GameBoard';
-import { PlayerLeftPanel } from './components/PlayerLeftPanel';
-import { PlayerRightPanel } from './components/PlayerRightPanel';
-import { ChatPanel } from './components/ChatPanel';
 import { VictoryModal } from './components/VictoryModal';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerHistory } from './components/PlayerHistory';
+import { LeftSidePanel } from './components/LeftSidePanel';
+import { SpectatorPanel } from './components/SpectatorPanel';
+import { RightSidePanel } from './components/RightSidePanel';
 import { BGMPlayer } from './components/BGMPlayer';
 import { useSocket } from './hooks/useSocket';
 import { useGameState } from './hooks/useGameState';
@@ -19,7 +19,6 @@ function App() {
   const [page, setPage] = useState<PageState>('connect');
   const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState('');
-  const [playerId, setPlayerId] = useState('');
   const [serverUrl, setServerUrl] = useState('');
   const [victoryModalVisible, setVictoryModalVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -27,14 +26,13 @@ function App() {
   const socket = useSocket();
   const gameState = useGameState();
 
-  const handleConnect = async (url: string, name: string, adminPassword?: string, pId?: string) => {
+  const handleConnect = async (url: string, name: string, adminPassword?: string) => {
     setLoading(true);
     try {
       await socket.connect(url);
       setLoading(false);
       setServerUrl(url);
       setPlayerName(name);
-      if (pId) setPlayerId(pId);
       // 验证管理员密码
       const ADMIN_PASSWORD = 'admin123'; // 默认管理员密码
       if (adminPassword === ADMIN_PASSWORD) {
@@ -282,18 +280,12 @@ function App() {
       )}
 
       {page === 'game' && gameState.gameState && (
-        <div className="min-h-screen py-8 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-          {/* BGM Player - 在游戏页面时播放 */}
-          {(() => {
-            console.log('[App] Rendering BGMPlayer, page:', page, 'gameState:', gameState.gameState);
-            return <BGMPlayer isPlaying={true} volume={0.5} loop={true} />;
-          })()}
-          
+        <div className="min-h-screen py-6 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
           <div className="mb-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold">
               {gameState.gameState.roomName || '五子棋'} - 房间 #{gameState.gameState.roomId}
             </h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               {!gameState.isSpectator && (
                 <button
                   onClick={handleSwitchToSpectator}
@@ -303,6 +295,8 @@ function App() {
                   👁️ 切换观战
                 </button>
               )}
+              {/* BGM Player - 在切换观战按钮下方 */}
+              <BGMPlayer isPlaying={true} volume={0.15} loop={false} />
               <button
                 onClick={handleBackToRoomList}
                 className="btn-secondary text-sm"
@@ -312,50 +306,46 @@ function App() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-6 max-w-7xl mx-auto">
-            {/* Top Row: Player Info | Game Board | Player Info | Spectators */}
-            <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
-              {/* Left: Black Player Info */}
-              <div className="w-full lg:w-64 flex-shrink-0">
-                <PlayerLeftPanel
-                  gameState={gameState.gameState}
-                  playerColor={gameState.playerColor}
-                  playerName={playerName}
-                  isSpectator={gameState.isSpectator}
-                />
-              </div>
+          <div className="flex gap-4 max-w-7xl mx-auto px-2 justify-center items-start pt-12" style={{ minHeight: 'calc(100vh - 160px)' }}>
+            {/* Left Side Panel - 与棋盘高度对齐 */}
+            <div className="w-56 flex-shrink-0" style={{ height: '750px', marginTop: '60px' }}>
+              <LeftSidePanel
+                gameState={gameState.gameState}
+                playerColor={gameState.playerColor}
+                playerName={playerName}
+                isSpectator={gameState.isSpectator}
+              />
+            </div>
 
-              {/* Middle: Game Board */}
-              <div className="flex justify-center">
-                <GameBoard
+            {/* Game Board - Center */}
+            <div className="flex-shrink-0 flex flex-col items-center">
+              <GameBoard
+                gameState={gameState.gameState}
+                playerColor={gameState.playerColor}
+                isCurrentPlayer={isCurrentPlayer}
+                onMove={handleMove}
+                onGameFinished={() => {
+                  console.log('[App] Game finished, reloading leaderboard');
+                }}
+              />
+              {/* Spectator Panel - Below Game Board */}
+              <div className="mt-4" style={{ width: '750px' }}>
+                <SpectatorPanel
                   gameState={gameState.gameState}
-                  playerColor={gameState.playerColor}
-                  isCurrentPlayer={isCurrentPlayer}
-                  onMove={handleMove}
-                  onGameFinished={() => {
-                    // 当游戏结束时，重新加载排行榜
-                    console.log('[App] Game finished, reloading leaderboard');
-                    // 这里可以添加重新加载排行榜的逻辑，或者触发父组件重新渲染
-                  }}
-                />
-              </div>
-
-              {/* Right: White Player Info & Spectators */}
-              <div className="w-full lg:w-64 flex-shrink-0">
-                <PlayerRightPanel
-                  gameState={gameState.gameState}
-                  playerColor={gameState.playerColor}
-                  playerName={playerName}
                   isSpectator={gameState.isSpectator}
+                  onJoinAsPlayer={handleJoinAsPlayer}
+                  boardWidth="750px"
                 />
               </div>
             </div>
 
-            {/* Bottom: Chat Panel */}
-            <div className="max-w-7xl mx-auto w-full">
-              <ChatPanel
-                messages={gameState.messages}
+            {/* Right Side Panel - 与棋盘高度对齐 */}
+            <div className="flex-shrink-0" style={{ width: '260px', height: '750px', marginTop: '58px' }}>
+              <RightSidePanel
+                gameState={gameState.gameState}
                 playerName={playerName}
+                messages={gameState.messages}
+                isSpectator={gameState.isSpectator}
                 onSendMessage={handleSendMessage}
               />
             </div>

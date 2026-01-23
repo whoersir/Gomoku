@@ -135,4 +135,63 @@ html, body, #root {
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(232, 234, 237, 0.5);
   }
+
+  /* BGM播放器样式 */
+  .bgm-player-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bgm-player-container:hover {
+    transform: scale(1.02);
+  }
+
+  /* 进度条样式优化 */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #073AB5;
+    border-radius: 50%;
+    margin-top: -4px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(7, 58, 181, 0.6);
+  }
+
+  input[type="range"]::-moz-range-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #073AB5;
+    border: none;
+    border-radius: 50%;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(7, 58, 181, 0.6);
+  }
 }

@@ -150,7 +150,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Game status above board */}
-      <div className="text-lg text-center text-dark-text-secondary font-medium glass-base rounded-lg px-4 py-2 text-glass">
+      <div className="text-xl text-center text-black font-bold rounded-lg px-6 py-3" style={{ backgroundColor: 'transparent', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
         {gameState?.status === 'waiting'
           ? '⏳ 等待第二名玩家加入...'
           : gameState?.status === 'finished'
