@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v1.0.1-blue)
+![Version](https://img.shields.io/badge/version-v1.0.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-stable-success)
 
@@ -11,6 +11,32 @@
 [在线演示](#) · [功能特性](#-功能特性) · [快速开始](#-快速开始) · [文档](#-文档)
 
 </div>
+
+---
+
+## 🎯 快速导航
+
+<details>
+<summary><b>🚀 没有开发经验？点这里快速开始</b></summary>
+
+### 最简单的安装方式（推荐）
+
+**Windows 用户（3分钟开始游戏）：**
+1. 双击运行 `start-simple.bat`
+2. 等待自动完成安装
+3. 打开浏览器访问 `http://localhost:5173`
+
+**详细安装指南：**
+- 📖 [INSTALL.md](INSTALL.md) - 一页式快速安装指南
+- 📚 [BEGINNER_GUIDE.md](BEGINNER_GUIDE.md) - 完整的新手使用教程（60页）
+
+**快速安装命令：**
+```bash
+npm install @whoersir/gomoku-server
+npm install @whoersir/gomoku-client
+```
+
+</details>
 
 ---
 
@@ -126,6 +152,44 @@ npm run dev
 
 ---
 
+## 📦 通过 NPM 安装使用（推荐给没有开发经验的用户）
+
+### 一键安装
+
+**最简单的方式：直接安装已发布的包**
+
+```bash
+# 安装游戏服务器
+npm install @whoersir/gomoku-server
+
+# 安装游戏客户端
+npm install @whoersir/gomoku-client
+```
+
+### 快速启动
+
+**Windows 用户：双击运行 `start-simple.bat`（自动完成所有步骤）**
+
+**手动启动：**
+
+```bash
+# 启动服务器
+cd node_modules/@whoersir/gomoku-server
+npm start
+
+# 新窗口启动客户端
+cd node_modules/@whoersir/gomoku-client
+npm run dev
+```
+
+### 详细文档
+
+如果遇到问题或需要详细说明，请查看：
+- [INSTALL.md](INSTALL.md) - 快速安装指南（3步）
+- [BEGINNER_GUIDE.md](BEGINNER_GUIDE.md) - 完整新手教程（60页）
+
+---
+
 ## 📖 使用说明
 
 ### 创建房间
@@ -211,12 +275,34 @@ Gomoku/
 │   └── package.json
 ├── CHANGELOG.md           # 版本更新日志
 ├── SECURITY_AUDIT.md      # 安全审计报告
-└── README.md             # 项目说明文档
+├── INSTALL.md            # 快速安装指南
+├── BEGINNER_GUIDE.md     # 新手完整教程
+├── start.bat             # Windows启动脚本
+├── start-simple.bat      # 一键启动脚本（初学者）
+└── README.md            # 项目说明文档
 ```
 
 ---
 
 ## 🔄 版本历史
+
+### [v1.0.2] - 2026-01-23 (Package Release)
+
+**新功能:**
+- 📦 发布 NPM 包到 GitHub Packages
+- 🚀 添加一键启动脚本（`start-simple.bat`）
+- 📚 创建新手友好文档（`INSTALL.md`, `BEGINNER_GUIDE.md`）
+- ✨ 简化安装流程，支持直接通过 NPM 安装
+
+**改进:**
+- 📖 添加详细的初学者使用指南（60页教程）
+- 🎯 优化快速开始流程
+- 📱 改进局域网多人游戏配置说明
+- ❓ 添加 15+ 常见问题解答
+
+**NPM 包:**
+- 后端包: `@whoersir/gomoku-server@1.0.2`
+- 前端包: `@whoersir/gomoku-client@1.0.2`
 
 ### [v1.0.1] - 2026-01-23 (Security Release)
 
@@ -254,6 +340,21 @@ Gomoku/
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+
+---
+
+## 📦 NPM 包
+
+本项目已发布到 GitHub Packages，可以通过 npm 直接安装：
+
+| 包名 | 版本 | 描述 | 安装命令 |
+|------|------|------|----------|
+| `@whoersir/gomoku-server` | 1.0.2 | 游戏服务器 | `npm install @whoersir/gomoku-server` |
+| `@whoersir/gomoku-client` | 1.0.2 | 游戏客户端 | `npm install @whoersir/gomoku-client` |
+
+**GitHub Packages:**
+- [后端包](https://github.com/whoersir/Gomoku/pkgs/npm/%40whoersir%2Fgomoku-server)
+- [前端包](https://github.com/whoersir/Gomoku/pkgs/npm/%40whoersir%2Fgomoku-client)
 
 ---
 
