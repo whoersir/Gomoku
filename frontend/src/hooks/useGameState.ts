@@ -8,6 +8,11 @@ interface PlayerLeftEvent {
   playerColor?: 1 | 2;
 }
 
+interface RoomClosedEvent {
+  roomId: string;
+  reason: string;
+}
+
 export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -151,6 +156,17 @@ export const useGameState = () => {
       });
     };
 
+    const handleRoomClosed = (data: RoomClosedEvent) => {
+      console.log(`[useGameState] Room closed: ${data.roomId}, reason: ${data.reason}`);
+      // 清除游戏状态和消息
+      setGameState(null);
+      setMessages([]);
+      setPlayerColor(null);
+      setIsSpectator(false);
+      // 可选：显示通知给用户
+      alert(`房间已关闭：${data.reason}`);
+    };
+
     // 清理事件监听器（强制清理所有旧监听器，避免重复注册）
     const unregisterListeners = () => {
       console.log('[useGameState] Unregistering socket event listeners...');
@@ -159,6 +175,7 @@ export const useGameState = () => {
       clearEventListeners('roomListUpdate');
       clearEventListeners('playerLeft');
       clearEventListeners('roomInfo');
+      clearEventListeners('roomClosed');
     };
 
     // 注册事件监听器（使用 socketService 的 on 函数，它会处理 socket 未初始化的情况）
@@ -169,6 +186,7 @@ export const useGameState = () => {
       on('roomListUpdate', handleRoomListUpdate);
       on('playerLeft', handlePlayerLeft);
       on('roomInfo', handleRoomInfo);
+      on('roomClosed', handleRoomClosed);
     };
 
     // 先清理所有旧监听器，再注册新监听器

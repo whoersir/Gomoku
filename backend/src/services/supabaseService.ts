@@ -329,7 +329,7 @@ export class SupabaseService {
       const player = await this.getPlayerBySocketId(socketId);
       if (!player) return false;
 
-      const scoreChange = isDraw ? 0 : (isWinner ? 10 : -10);
+      const scoreChange = isDraw ? 0 : (isWinner ? 25 : -20);
       const updates: Partial<PlayerRecord> = {
         total_games: player.total_games + 1,
         score: Math.max(0, player.score + scoreChange),

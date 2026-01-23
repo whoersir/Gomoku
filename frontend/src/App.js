@@ -177,7 +177,7 @@ function App() {
             const interval = setInterval(loadRooms, 1500);
             return () => clearInterval(interval);
         }
-    }, [page, socket, gameState]);
+    }, [page, socket.getRoomList, gameState.updateRooms]); // 使用稳定的函数引用，避免无限循环
     // Show victory modal when game is finished
     useEffect(() => {
         if (gameState.gameState?.status === 'finished' && gameState.gameState.winner && !gameState.isSpectator) {

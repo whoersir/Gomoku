@@ -192,7 +192,7 @@ function App() {
 
       return () => clearInterval(interval);
     }
-  }, [page, socket, gameState]);
+  }, [page, socket.getRoomList, gameState.updateRooms]); // 使用稳定的函数引用，避免无限循环
 
   // Show victory modal when game is finished
   useEffect(() => {
@@ -325,6 +325,11 @@ function App() {
                   playerColor={gameState.playerColor}
                   isCurrentPlayer={isCurrentPlayer}
                   onMove={handleMove}
+                  onGameFinished={() => {
+                    // 当游戏结束时，重新加载排行榜
+                    console.log('[App] Game finished, reloading leaderboard');
+                    // 这里可以添加重新加载排行榜的逻辑，或者触发父组件重新渲染
+                  }}
                 />
               </div>
 

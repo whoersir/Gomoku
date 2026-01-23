@@ -630,8 +630,12 @@ export class SocketHandlers {
     room.removePlayer(socket.id);
     this.playerNames.delete(socket.id);
 
+    // Clear any existing spectator data for this socket (fix for bug 1)
+    this.spectatorNames.delete(socket.id);
+    room.removeSpectator(socket.id);
+
     // Add as spectator
-    const spectatorName = playerName || this.playerNames.get(socket.id) || `Spectator-${socket.id.slice(0, 4)}`;
+    const spectatorName = playerName || `Spectator-${socket.id.slice(0, 4)}`;
     room.addSpectator(socket.id, spectatorName, socket);
     this.spectatorNames.set(socket.id, spectatorName);
 
@@ -640,8 +644,26 @@ export class SocketHandlers {
     socket.data.isSpectator = true;
 
     // Get updated game state
-    const gameState = room.getGameState();
+    let gameState = room.getGameState();
     const roomInfo = room.getRoomInfo();
+
+    // 如果没有游戏状态（只有一个玩家），创建一个等待状态
+    if (!gameState) {
+      gameState = {
+        roomId,
+        roomName: roomInfo.roomName || '',
+        board: Array(15).fill(null).map(() => Array(15).fill(0)),
+        currentPlayer: 1,
+        status: 'waiting',
+        moves: [],
+        players: {
+          black: roomInfo.blackPlayer || { id: '', name: 'Waiting...' },
+          white: roomInfo.whitePlayer || { id: '', name: 'Waiting...' }
+        },
+        spectators: roomInfo.spectators || [],
+        createdAt: Date.now()
+      };
+    }
 
     // Notify all in the room
     io.to(roomId).emit('playerLeft', {
@@ -678,7 +700,43 @@ export class SocketHandlers {
           
           room.removePlayer(socket.id);
 
-          if (room.isEmpty()) {
+          // 检查房间状态，如果只剩下一个玩家，重置游戏状态为等待（修复bug 2）
+          if (room.getPlayerCount() === 1) {
+            // 重置游戏状态
+            room.restartGame();
+            // 发送重置后的游戏状态
+            const gameState = room.getGameState();
+            if (gameState) {
+              io.to(roomId).emit('gameStateUpdate', gameState);
+            } else {
+              // 如果没有游戏状态，发送等待状态
+              const roomInfo = room.getRoomInfo();
+              io.to(roomId).emit('gameStateUpdate', {
+                roomId,
+                roomName: roomInfo.roomName || '',
+                board: Array(15).fill(null).map(() => Array(15).fill(0)),
+                currentPlayer: 1,
+                status: 'waiting',
+                moves: [],
+                players: {
+                  black: roomInfo.blackPlayer || { id: '', name: 'Waiting...' },
+                  white: roomInfo.whitePlayer || { id: '', name: 'Waiting...' }
+                },
+                spectators: roomInfo.spectators || [],
+                createdAt: Date.now()
+              });
+            }
+          }
+
+          // 如果所有玩家都退出了（即使还有观战者），关闭房间
+          if (room.getPlayerCount() === 0) {
+            console.log(`[Socket] No players left in room ${roomId}, closing room`);
+            // 通知所有在房间内的人（包括观战者）房间即将关闭
+            io.to(roomId).emit('roomClosed', {
+              roomId,
+              reason: 'All players have left the room',
+            });
+            // 删除房间
             this.roomManager.removeRoom(roomId);
             io.emit('roomListUpdate', this.roomManager.getRoomList());
           } else {

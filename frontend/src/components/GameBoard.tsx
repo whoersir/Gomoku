@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import { GameState } from '../types';
 
 interface GameBoardProps {
@@ -6,6 +7,7 @@ interface GameBoardProps {
   playerColor: 1 | 2 | null;
   isCurrentPlayer: boolean;
   onMove: (x: number, y: number) => void;
+  onGameFinished: () => void; // 添加回调函数
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -13,11 +15,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   playerColor,
   isCurrentPlayer,
   onMove,
+  onGameFinished,
 }) => {
   const boardSize = gameState?.board.length || 15;
   const cellSize = 50;
   const boardWidth = boardSize * cellSize;
   const isGameOver = gameState?.status === 'finished';
+
+  // 当游戏状态变为 finished 时，触发重新加载排行榜
+  useEffect(() => {
+    if (gameState?.status === 'finished') {
+      onGameFinished();
+    }
+  }, [gameState?.status, onGameFinished]);
 
   const handleCellClick = (x: number, y: number) => {
     console.log(`[GameBoard] Cell clicked (${x}, ${y}), isCurrentPlayer:`, isCurrentPlayer, 'playerColor:', playerColor, 'currentPlayer:', gameState?.currentPlayer, 'isGameOver:', isGameOver);
@@ -156,9 +166,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         height={boardWidth}
         className="rounded-lg border-2 border-dark-text-tertiary"
         style={{
-          backgroundImage: `url('C:\\Users\\v_bxgxwang\\AppData\\Local\\Temp\\4440bca4-4eed-4d4c-a168-2eddac9b89b0(1).jpg')`,
+          backgroundImage: 'url(/wood-texture.png)', // 使用相对路径，避免本地路径问题
           backgroundSize: 'cover',
           backgroundPosition: 'center',
+          backgroundColor: '#DEB887', // 添加备用的木纹颜色
         }}
       >
         {renderBoard()}
