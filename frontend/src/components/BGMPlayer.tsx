@@ -103,14 +103,14 @@ export const BGMPlayer: React.FC<BGMPlayerProps> = ({
   };
 
   return (
-    <div 
-      className="fixed bottom-4 left-4 z-[9999] bg-dark-bg-primary/90 backdrop-blur-sm rounded-lg p-3 border border-dark-text-tertiary/30 shadow-lg"
+    <div
+      className="fixed bottom-4 left-4 z-[9999] glass-strong rounded-lg p-3 shadow-2xl transition-all hover:scale-105"
       style={{ zIndex: 9999 }}
     >
-      <audio 
-        ref={audioRef} 
-        src="/BGM.wav" 
-        preload="auto" 
+      <audio
+        ref={audioRef}
+        src="/BGM.wav"
+        preload="auto"
         onCanPlay={() => console.log('[BGMPlayer] Audio can play event')}
         onError={(e) => console.error('[BGMPlayer] Audio error event:', e)}
       />

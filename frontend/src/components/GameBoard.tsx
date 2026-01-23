@@ -150,7 +150,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Game status above board */}
-      <div className="text-lg text-center text-dark-text-secondary font-medium">
+      <div className="text-lg text-center text-dark-text-secondary font-medium glass-base rounded-lg px-4 py-2 text-glass">
         {gameState?.status === 'waiting'
           ? '⏳ 等待第二名玩家加入...'
           : gameState?.status === 'finished'
@@ -170,6 +170,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundColor: '#DEB887', // 添加备用的木纹颜色
+          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))',
         }}
       >
         {renderBoard()}

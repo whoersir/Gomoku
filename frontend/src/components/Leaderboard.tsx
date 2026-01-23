@@ -76,9 +76,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
   // 内嵌模式渲染
   if (embedded) {
     return (
-      <div className="card-base p-4 h-full">
-        <h2 className="text-xl font-bold mb-4">🏆 排行榜</h2>
-        
+      <div className="glass-base p-4 h-full rounded-lg">
+        <h2 className="text-xl font-bold mb-4 text-glass">🏆 排行榜</h2>
+
         {loading ? (
           <div className="text-center py-8 text-dark-text-secondary">加载中...</div>
         ) : error ? (
@@ -90,16 +90,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
             {leaderboard.map((player, index) => (
               <div
                 key={player.id}
-                className={`flex items-center gap-3 p-2 rounded-lg ${
-                  index === 0 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                  index === 1 ? 'bg-gray-400/10 border border-gray-400/30' :
-                  index === 2 ? 'bg-orange-500/10 border border-orange-500/30' :
-                  'hover:bg-dark-bg-tertiary'
+                className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                  index === 0 ? 'glass-light border-yellow-500/30' :
+                  index === 1 ? 'glass-light border-gray-400/30' :
+                  index === 2 ? 'glass-light border-orange-500/30' :
+                  'glass-light hover:bg-white/5'
                 }`}
               >
                 <span className="font-bold w-8">{getRankEmoji(index)}</span>
-                <span className="flex-1 truncate">{player.name}</span>
-                <span className="text-primary font-bold">{player.score}</span>
+                <span className="flex-1 truncate text-glass">{player.name}</span>
+                <span className="text-primary font-bold text-glass">{player.score}</span>
                 <span className="text-xs text-dark-text-secondary w-16 text-right">
                   {player.wins}胜{player.losses}负
                 </span>
@@ -107,8 +107,8 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
             ))}
           </div>
         )}
-        
-        <div className="mt-4 text-xs text-dark-text-tertiary text-center">
+
+        <div className="mt-4 text-xs text-dark-text-tertiary text-center glass-strong inline-block px-3 py-1 rounded-full">
           💡 胜利 +25分，失败 -20分
         </div>
       </div>
@@ -117,10 +117,10 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
 
   // 弹窗模式渲染
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="card-base max-w-2xl w-full mx-4 p-6 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="glass-base max-w-2xl w-full mx-4 p-6 animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto rounded-lg">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">🏆 排行榜</h2>
+          <h2 className="text-2xl font-bold text-glass-strong">🏆 排行榜</h2>
           <button
             onClick={onClose}
             className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-2xl"
@@ -138,27 +138,27 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
         ) : (
           <div className="space-y-3">
             <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-dark-text-secondary pb-2 border-b border-dark-text-tertiary/20">
-              <div className="col-span-1">排名</div>
-              <div className="col-span-3">玩家</div>
-              <div className="col-span-2 text-center">积分</div>
-              <div className="col-span-2 text-center">胜率</div>
-              <div className="col-span-2 text-center">战绩</div>
-              <div className="col-span-2 text-center">最近对局</div>
+              <div className="col-span-1 text-glass">排名</div>
+              <div className="col-span-3 text-glass">玩家</div>
+              <div className="col-span-2 text-center text-glass">积分</div>
+              <div className="col-span-2 text-center text-glass">胜率</div>
+              <div className="col-span-2 text-center text-glass">战绩</div>
+              <div className="col-span-2 text-center text-glass">最近对局</div>
             </div>
 
             {leaderboard.map((player, index) => (
               <div
                 key={player.id}
-                className={`grid grid-cols-12 gap-2 text-sm py-3 px-3 rounded-lg transition-colors ${
-                  index === 0 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                  index === 1 ? 'bg-gray-400/10 border border-gray-400/30' :
-                  index === 2 ? 'bg-orange-500/10 border border-orange-500/30' :
-                  'hover:bg-dark-bg-tertiary'
+                className={`grid grid-cols-12 gap-2 text-sm py-3 px-3 rounded-lg transition-all hover:scale-[1.01] ${
+                  index === 0 ? 'glass-light border-yellow-500/30' :
+                  index === 1 ? 'glass-light border-gray-400/30' :
+                  index === 2 ? 'glass-light border-orange-500/30' :
+                  'glass-light hover:bg-white/5'
                 }`}
               >
                 <div className="col-span-1 font-bold text-lg">{getRankEmoji(index)}</div>
-                <div className="col-span-3 font-medium truncate">{player.name}</div>
-                <div className="col-span-2 text-center font-bold text-primary">{player.score}</div>
+                <div className="col-span-3 font-medium truncate text-glass">{player.name}</div>
+                <div className="col-span-2 text-center font-bold text-primary text-glass-strong">{player.score}</div>
                 <div className="col-span-2 text-center text-dark-text-secondary">
                   {getWinRate(player)}
                 </div>
@@ -173,7 +173,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
           </div>
         )}
 
-        <div className="mt-6 text-xs text-dark-text-tertiary text-center">
+        <div className="mt-6 text-xs text-dark-text-tertiary text-center glass-strong inline-block px-4 py-2 rounded-full">
           💡 胜利 +25分，失败 -20分，平局不变
         </div>
       </div>

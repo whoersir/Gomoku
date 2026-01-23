@@ -9,9 +9,11 @@
 }
 
 body {
-  background-color: #0F1419;
+  background: linear-gradient(135deg, #0F1419 0%, #1A1F2E 50%, #232B3C 100%);
   color: #FFFFFF;
   font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html, body, #root {
@@ -20,19 +22,117 @@ html, body, #root {
 }
 
 @layer components {
+  /* 毛玻璃效果基础类 */
+  .glass-base {
+    background: rgba(26, 31, 46, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-light {
+    background: rgba(35, 43, 60, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .glass-strong {
+    background: rgba(15, 20, 25, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
   .btn-primary {
-    @apply px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 cursor-pointer font-medium;
+    @apply px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-all duration-200 cursor-pointer font-medium;
+    box-shadow: 0 4px 12px rgba(7, 58, 181, 0.3);
+    backdrop-filter: blur(8px);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(7, 58, 181, 0.4);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-dark-bg-secondary hover:bg-dark-bg-tertiary text-white rounded-lg transition-colors duration-200 cursor-pointer border border-dark-text-tertiary;
+    @apply px-4 py-2 text-white rounded-lg transition-all duration-200 cursor-pointer border;
+    background: rgba(26, 31, 46, 0.6);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(35, 43, 60, 0.8);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .input-base {
-    @apply px-4 py-2 bg-dark-bg-secondary border border-dark-text-tertiary rounded-lg text-white placeholder-dark-text-tertiary focus:outline-none focus:border-primary transition-colors duration-200;
+    @apply px-4 py-2 rounded-lg transition-all duration-200;
+    background: rgba(15, 20, 25, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #F8F9FA;
+    placeholder: rgba(232, 234, 237, 0.6);
+  }
+
+  .input-base:focus {
+    outline: none;
+    border-color: rgba(7, 58, 181, 0.8);
+    box-shadow: 0 0 0 3px rgba(7, 58, 181, 0.2);
+    background: rgba(15, 20, 25, 0.9);
   }
 
   .card-base {
-    @apply bg-dark-bg-secondary rounded-lg border border-dark-text-tertiary/20 p-4;
+    @apply rounded-lg p-4;
+    background: rgba(26, 31, 46, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* 文本可读性增强 */
+  .text-glass {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .text-glass-strong {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  }
+
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(15, 20, 25, 0.5);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(232, 234, 237, 0.3);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(232, 234, 237, 0.5);
   }
 }

@@ -41,8 +41,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   return (
-    <div className="card-base flex flex-col h-96 max-h-96" style={{ backgroundColor: 'rgba(26, 31, 46, 0.5)' }}>
-      <div className="text-lg font-semibold mb-3">聊天</div>
+    <div className="glass-base flex flex-col h-96 max-h-96 rounded-lg p-4">
+      <div className="text-lg font-semibold mb-3 text-glass">聊天</div>
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto mb-3 space-y-2">
@@ -59,7 +59,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {new Date(msg.timestamp).toLocaleTimeString()}
                 </span>
               </div>
-              <div className="text-dark-text-secondary break-words bg-dark-bg-tertiary p-2 rounded text-xs">
+              <div className="text-dark-text-secondary break-words glass-light p-2 rounded text-xs text-glass">
                 {msg.message}
               </div>
             </div>
