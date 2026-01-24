@@ -360,6 +360,11 @@ function App() {
 
   return (
     <div className="w-full min-h-screen bg-dark-bg">
+      {/* Global Music Player - Always visible */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <MusicPlayer />
+      </div>
+
       {page === 'connect' && (
         <ConnectDialog
           onConnect={handleConnect}
@@ -404,9 +409,9 @@ function App() {
                 isAdmin={isAdmin}
               />
             </div>
-            
-            {/* Right: Player History + Music Player */}
-            <div className="w-80 flex-shrink-0 flex flex-col gap-4">
+
+            {/* Right: Player History */}
+            <div className="w-80 flex-shrink-0">
               <PlayerHistory
                 playerName={playerName}
                 isOpen={true}
@@ -414,10 +419,6 @@ function App() {
                 serverUrl={serverUrl}
                 embedded={true}
               />
-              {/* Music Player below Player History */}
-              <div className="music-player-room-list-wrapper">
-                <MusicPlayer />
-              </div>
             </div>
           </div>
         </div>
@@ -494,11 +495,6 @@ function App() {
                 onSendMessage={handleSendMessage}
               />
             </div>
-          </div>
-
-          {/* Music Player - Bottom Right Corner */}
-          <div className="music-player-game-room-wrapper">
-            <MusicPlayer />
           </div>
         </div>
       )}
