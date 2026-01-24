@@ -208,6 +208,86 @@ app.get('/api/player/:id', async (req, res) => {
   }
 });
 
+// ========== 音乐搜索代理API ==========
+
+// 代理 Netease 音乐搜索
+app.get('/api/music/netease', async (req, res) => {
+  const { keyword, limit = '10' } = req.query;
+  
+  if (!keyword || typeof keyword !== 'string') {
+    res.status(400).json({ error: '请提供搜索关键词' });
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      s: keyword,
+      limit: limit.toString(),
+      type: '1',
+      offset: '0',
+    });
+
+    const response = await fetch(
+      `https://music.163.com/api/search/get?${params.toString()}`,
+      {
+        headers: {
+          'Referer': 'https://music.163.com',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('[API] Netease search error:', error);
+    res.status(500).json({ error: 'Failed to search Netease' });
+  }
+});
+
+// 代理 QQ 音乐搜索
+app.get('/api/music/qq', async (req, res) => {
+  const { keyword, limit = '10' } = req.query;
+  
+  if (!keyword || typeof keyword !== 'string') {
+    res.status(400).json({ error: '请提供搜索关键词' });
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      w: keyword,
+      p: '1',
+      n: limit.toString(),
+      type: '0',
+    });
+
+    const response = await fetch(
+      `https://u.y.qq.com/cgi-bin/musicu.fcg?${params.toString()}`,
+      {
+        headers: {
+          'Referer': 'https://y.qq.com',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('[API] QQ search error:', error);
+    res.status(500).json({ error: 'Failed to search QQ Music' });
+  }
+});
+
 // Socket.io events
 io.on('connection', socket => {
   socketHandlers.handleConnection(socket, io);

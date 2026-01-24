@@ -8,7 +8,7 @@ import { PlayerHistory } from './components/PlayerHistory';
 import { LeftSidePanel } from './components/LeftSidePanel';
 import { SpectatorPanel } from './components/SpectatorPanel';
 import { RightSidePanel } from './components/RightSidePanel';
-import { BGMPlayer } from './components/BGMPlayer';
+import MusicPlayer from './components/MusicPlayer';
 import { useSocket } from './hooks/useSocket';
 import { useGameState } from './hooks/useGameState';
 // import { on, off } from './services/socketService';
@@ -265,8 +265,8 @@ function App() {
               />
             </div>
             
-            {/* Right: Player History */}
-            <div className="w-80 flex-shrink-0">
+            {/* Right: Player History + Music Player */}
+            <div className="w-80 flex-shrink-0 flex flex-col gap-4">
               <PlayerHistory
                 playerName={playerName}
                 isOpen={true}
@@ -274,10 +274,16 @@ function App() {
                 serverUrl={serverUrl}
                 embedded={true}
               />
+              {/* Music Player below Player History */}
+              <div className="music-player-room-list-wrapper">
+                <MusicPlayer />
+              </div>
             </div>
           </div>
         </div>
       )}
+
+
 
       {page === 'game' && gameState.gameState && (
         <div className="min-h-screen py-6 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
@@ -295,8 +301,7 @@ function App() {
                   👁️ 切换观战
                 </button>
               )}
-              {/* BGM Player - 在切换观战按钮下方 */}
-              <BGMPlayer isPlaying={true} volume={0.15} loop={false} />
+
               <button
                 onClick={handleBackToRoomList}
                 className="btn-secondary text-sm"

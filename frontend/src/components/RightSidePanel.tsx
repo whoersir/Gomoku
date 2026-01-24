@@ -44,9 +44,9 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Chat Panel */}
-      <div className="card-base flex flex-col flex-1 min-h-0">
+    <>
+      {/* Chat Panel - fixed height 750px */}
+      <div className="card-base flex flex-col overflow-hidden" style={{ height: '750px' }}>
         <div className="text-lg font-bold text-dark-text-secondary mb-3 flex items-center gap-2">
           <span>💬</span>聊天
         </div>
@@ -89,6 +89,6 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };
