@@ -296,7 +296,7 @@ function App() {
 
 
       {page === 'game' && gameState.gameState && (
-        <div className="min-h-screen py-6 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+        <div className="min-h-screen py-6 px-4 relative" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
           <div className="mb-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold">
               {gameState.gameState.roomName || '五子棋'} - 房间 #{gameState.gameState.roomId}
@@ -364,6 +364,11 @@ function App() {
                 onSendMessage={handleSendMessage}
               />
             </div>
+          </div>
+
+          {/* Music Player - Bottom Right Corner */}
+          <div className="music-player-game-room-wrapper">
+            <MusicPlayer />
           </div>
         </div>
       )}

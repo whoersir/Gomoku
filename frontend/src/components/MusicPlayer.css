@@ -498,6 +498,48 @@
 
 
 
+/* Music Player in Game Room - Fixed bottom right corner */
+.music-player-game-room-wrapper {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 50;
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.music-player-game-room-wrapper .music-player {
+  background: rgba(26, 31, 46, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+/* Scrollbar styling for game room player */
+.music-player-game-room-wrapper .music-player::-webkit-scrollbar {
+  width: 6px;
+}
+
+.music-player-game-room-wrapper .music-player::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.music-player-game-room-wrapper .music-player::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.music-player-game-room-wrapper .music-player::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .music-player-cover {
@@ -519,5 +561,12 @@
     width: 44px !important;
     height: 44px !important;
     font-size: 18px !important;
+  }
+
+  /* Adjust music player position on small screens */
+  .music-player-game-room-wrapper {
+    width: 280px;
+    bottom: 10px;
+    right: 10px;
   }
 }
