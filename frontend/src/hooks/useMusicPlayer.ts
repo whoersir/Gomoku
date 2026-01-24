@@ -256,7 +256,12 @@ export function useMusicPlayer() {
 
     const clampedTime = Math.max(0, Math.min(duration, time));
     audioRef.current.currentTime = clampedTime;
+    // 立即更新状态，避免UI延迟
     setPlayerState(prev => ({ ...prev, currentTime: clampedTime }));
+    // 确保 timeupdate 事件触发后同步状态
+    setTimeout(() => {
+      setPlayerState(prev => ({ ...prev, currentTime: audioRef.current?.currentTime || clampedTime }));
+    }, 10);
   }, []);
 
   // const toggleMiniMode = useCallback(() => {

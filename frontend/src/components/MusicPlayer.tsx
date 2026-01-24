@@ -20,7 +20,7 @@ const MusicPlayer: React.FC = () => {
   } = useMusicPlayer();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(true);
   const [searchError, setSearchError] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -164,6 +164,7 @@ const MusicPlayer: React.FC = () => {
     const newTime = percentage * duration;
 
     seek(newTime);
+    setDisplayProgress(percentage * 100);
   };
 
   const handleDragStart = (e: React.MouseEvent) => {
@@ -212,6 +213,11 @@ const MusicPlayer: React.FC = () => {
     }
   }, [actualProgress, isSeeking]);
 
+  // 切歌时重置进度条显示
+  useEffect(() => {
+    setDisplayProgress(0);
+  }, [currentTrack?.id]);
+
   useEffect(() => {
     return () => {
       document.removeEventListener('mousemove', handleDrag);
@@ -225,17 +231,25 @@ const MusicPlayer: React.FC = () => {
         <div className="music-player-title-section">
           <h3>🎵 LX Music</h3>
         </div>
-        <button
-          className="music-player-playlist-toggle"
-          onClick={() => setShowPlaylist(!showPlaylist)}
-          title="播放列表"
-        >
-          📋
-        </button>
       </div>
 
       {currentTrack && (
         <div className="music-player-current">
+          {currentTrack.cover && (
+            <img
+              src={currentTrack.cover}
+              alt={`${currentTrack.title} - ${currentTrack.artist}`}
+              className="music-player-cover"
+              loading="lazy"
+              onError={(e) => {
+                // 如果图片加载失败，替换为 CSS 渐变背景
+                e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                e.currentTarget.style.padding = '8px';
+                e.currentTarget.style.borderRadius = '6px';
+                e.currentTarget.src = '';
+              }}
+            />
+          )}
           <div className="music-player-info">
             <div className="music-player-title">{currentTrack.title}</div>
             <div className="music-player-artist">{currentTrack.artist}</div>
@@ -256,16 +270,7 @@ const MusicPlayer: React.FC = () => {
         <button onClick={playNext} title="下一首">⏭</button>
       </div>
 
-      <div className="music-player-play-mode">
-        <button
-          onClick={togglePlayMode}
-          title={playModeLabels[playMode]}
-          className="music-player-play-mode-btn"
-        >
-          {playModeIcons[playMode]}
-        </button>
-        <span className="music-player-play-mode-label">{playModeLabels[playMode]}</span>
-      </div>
+
 
       <div className="music-player-time">
         <span>{formatTime(currentTime)}</span>
@@ -322,9 +327,29 @@ const MusicPlayer: React.FC = () => {
         )}
       </div>
 
-      {showPlaylist && (
-        <div className="music-player-playlist">
-          <h4>播放列表 ({playerState.playlist.length})</h4>
+      {/* Playlist section visible in the sidebar */}
+      <div className="music-player-playlist">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <h4 style={{ margin: 0, fontSize: '12px', color: 'rgba(255, 255, 255, 0.9)' }}>播放列表 ({playerState.playlist.length})</h4>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            <button
+              onClick={togglePlayMode}
+              title={playModeLabels[playMode]}
+              className="music-player-play-mode-btn"
+              style={{ fontSize: '12px', padding: '4px 6px' }}
+            >
+              {playModeIcons[playMode]}
+            </button>
+            <button
+              className="music-player-playlist-toggle"
+              onClick={() => setShowPlaylist(!showPlaylist)}
+              style={{ fontSize: '12px', padding: '2px 6px' }}
+            >
+              {showPlaylist ? '▼' : '▶'}
+            </button>
+          </div>
+        </div>
+        {showPlaylist && (
           <div className="music-player-playlist-items">
             {playerState.playlist.map((track, index) => (
               <div
@@ -347,8 +372,8 @@ const MusicPlayer: React.FC = () => {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

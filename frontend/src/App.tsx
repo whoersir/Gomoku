@@ -359,12 +359,9 @@ function App() {
     gameState.gameState.currentPlayer);
 
   return (
-    <div className="w-full min-h-screen bg-dark-bg">
-      {/* Global Music Player - Always visible */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <MusicPlayer />
-      </div>
-
+    <div className="w-full min-h-screen bg-dark-bg flex pr-[300px]">
+      <div className="flex-1">
+      
       {page === 'connect' && (
         <ConnectDialog
           onConnect={handleConnect}
@@ -485,16 +482,18 @@ function App() {
               </div>
             </div>
 
-            {/* Right Side Panel - 与棋盘高度对齐 */}
-            <div className="flex-shrink-0 flex flex-col" style={{ width: '260px', height: '750px', marginTop: '58px', gap: '16px' }}>
-              <RightSidePanel
-                gameState={gameState.gameState}
-                playerName={playerName}
-                messages={gameState.messages}
-                isSpectator={gameState.isSpectator}
-                onSendMessage={handleSendMessage}
-              />
-            </div>
+{/* Right Side Panel */}
+          <div className="flex-shrink-0 flex flex-col" style={{ width: '260px', height: '750px', marginTop: '58px', gap: '16px' }}>
+            <RightSidePanel
+              gameState={gameState.gameState}
+              playerName={playerName}
+              messages={gameState.messages}
+              isSpectator={gameState.isSpectator}
+              onSendMessage={handleSendMessage}
+            />
+          </div>
+
+
           </div>
         </div>
       )}
@@ -508,6 +507,22 @@ function App() {
           onClose={() => setVictoryModalVisible(false)}
         />
       )}
+      
+      {/* Music Player - Right Side (always visible) */}
+      <div 
+        className={page === 'roomList' ? 'music-player-sidebar-room-list' : 'music-player-sidebar-game-room'}
+        style={{ 
+          position: 'fixed', 
+          right: 0, 
+          top: '20px', 
+          height: 'calc(100vh - 40px)', 
+          width: '300px', 
+          zIndex: 50 
+        }}
+      >
+        <MusicPlayer />
+      </div>
+      </div>
     </div>
   );
 }

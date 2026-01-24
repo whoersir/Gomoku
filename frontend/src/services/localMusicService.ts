@@ -43,7 +43,7 @@ class LocalMusicService {
         album: track.album,
         duration: track.duration,
         url: track.url,
-        cover: track.cover || 'https://picsum.photos/200/200'
+        cover: track.cover || 'https://picsum.photos/64/64'
       }));
     } catch (error) {
       console.error('[LocalMusicService] Search error:', error);

@@ -83,7 +83,7 @@ class LocalMusicService {
                 const metadata = await parseFile(filePath);
 
                 // 提取专辑封面图片
-                let coverUrl = 'https://picsum.photos/200/200';
+                let coverUrl = 'https://picsum.photos/64/64';
                 if (metadata.common?.picture && metadata.common.picture.length > 0) {
                   try {
                     const picture = metadata.common.picture[0];

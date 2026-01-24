@@ -82,7 +82,7 @@ class MusicService {
         artist: artist || 'Custom',
         album: 'Custom Playlist',
         duration: 180,
-        cover: 'https://picsum.photos/200/200',
+        cover: 'https://picsum.photos/64/64',
         url: url,
       };
 
