@@ -15,10 +15,9 @@ class MusicService {
         return presetPlaylist;
       }
 
-      // 搜索策略：本地音乐 -> Jamendo -> musicAPI多源 -> 网易云音乐 -> 预设列表兜底
-      // 1. 首选：本地音乐（速度最快，完整歌曲）
+      // 搜索策略：只搜索本地音乐
       try {
-        console.log('[MusicService] Trying local music library...');
+        console.log('[MusicService] Searching local music library...');
         const localResults = await localMusicService.searchMusic(filters.query, filters.limit || 10);
         if (localResults.length > 0) {
           console.log(`[MusicService] Local music found ${localResults.length} tracks`);
@@ -28,44 +27,8 @@ class MusicService {
         console.warn('[MusicService] Local music search failed:', error);
       }
 
-      // 2. Jamendo开放音乐平台（可播放完整歌曲）
-      try {
-        console.log('[MusicService] Trying Jamendo API (full-length tracks)...');
-        const jamendoResults = await jamendoService.searchJamendo(filters.query, filters.limit || 10);
-        if (jamendoResults.length > 0) {
-          console.log(`[MusicService] Jamendo API found ${jamendoResults.length} full-length tracks`);
-          return jamendoResults;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Jamendo search failed:', error);
-      }
-
-      // 3. 次选：musicAPI 多源搜索（Netease + QQ）
-      try {
-        console.log('[MusicService] Trying musicAPI multi-source search...');
-        const multiSourceResults = await musicApiService.searchMultipleSources(filters.query, filters.limit || 10);
-        if (multiSourceResults.length > 0) {
-          console.log(`[MusicService] musicAPI found ${multiSourceResults.length} tracks`);
-          return multiSourceResults;
-        }
-      } catch (error) {
-        console.warn('[MusicService] musicAPI search failed:', error);
-      }
-
-      // 4. 备用：网易云音乐（完整歌曲）
-      try {
-        console.log('[MusicService] Trying Netease API (full-length tracks)...');
-        const neteaseResults = await neteaseService.searchMusic(filters.query, filters.limit || 10);
-        if (neteaseResults.length > 0) {
-          console.log(`[MusicService] Netease API found ${neteaseResults.length} full-length tracks`);
-          return neteaseResults;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Netease search failed:', error);
-      }
-
-      // 回退到预设列表过滤
-      console.log('[MusicService] Falling back to preset playlist');
+      // 本地无结果时，返回预设列表过滤
+      console.log('[MusicService] No local music found, falling back to preset playlist');
       return this.filterPresetPlaylist(filters.query);
     } catch (error) {
       console.error('Music service error:', error);
@@ -128,32 +91,8 @@ class MusicService {
    */
   async getTrendingMusic(limit: number = 10): Promise<MusicTrack[]> {
     try {
-      // 首选Jamendo热门音乐（完整歌曲）
-      try {
-        console.log('[MusicService] Getting trending from Jamendo...');
-        const jamendoTrending = await jamendoService.getTrendingTracks(limit);
-        if (jamendoTrending.length > 0) {
-          console.log(`[MusicService] Jamendo trending found ${jamendoTrending.length} tracks`);
-          return jamendoTrending;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Jamendo trending failed:', error);
-      }
-
-      // 备用网易云音乐热门音乐（完整歌曲）
-      try {
-        console.log('[MusicService] Getting trending from Netease...');
-        const neteaseTrending = await neteaseService.getTrendingMusic(limit);
-        if (neteaseTrending.length > 0) {
-          console.log(`[MusicService] Netease trending found ${neteaseTrending.length} tracks`);
-          return neteaseTrending;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Netease trending failed:', error);
-      }
-
-      // 回退到预设列表
-      console.log('[MusicService] Falling back to preset playlist');
+      // 返回预设列表
+      console.log('[MusicService] Getting trending from preset playlist');
       return presetPlaylist.slice(0, limit);
     } catch (error) {
       console.error('Get trending music error:', error);
@@ -166,32 +105,8 @@ class MusicService {
    */
   async getMusicByGenre(genre: string, limit: number = 10): Promise<MusicTrack[]> {
     try {
-      // 首选Jamendo流派音乐（完整歌曲）
-      try {
-        console.log(`[MusicService] Getting genre "${genre}" from Jamendo...`);
-        const jamendoResults = await jamendoService.getTracksByGenre(genre, limit);
-        if (jamendoResults.length > 0) {
-          console.log(`[MusicService] Jamendo genre found ${jamendoResults.length} tracks`);
-          return jamendoResults;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Jamendo genre search failed:', error);
-      }
-
-      // 备用网易云音乐流派音乐（完整歌曲）
-      try {
-        console.log(`[MusicService] Getting genre "${genre}" from Netease...`);
-        const neteaseResults = await neteaseService.getMusicByGenre(genre, limit);
-        if (neteaseResults.length > 0) {
-          console.log(`[MusicService] Netease genre found ${neteaseResults.length} tracks`);
-          return neteaseResults;
-        }
-      } catch (error) {
-        console.warn('[MusicService] Netease genre search failed:', error);
-      }
-
       // 回退到预设列表过滤
-      console.log('[MusicService] Falling back to preset playlist');
+      console.log(`[MusicService] Getting genre "${genre}" from preset playlist`);
       return this.filterPresetPlaylist(genre);
     } catch (error) {
       console.error('Get music by genre error:', error);
