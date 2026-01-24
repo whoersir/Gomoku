@@ -100,7 +100,7 @@ class LocalMusicService {
                   artist: metadata.common?.artist || artistName || 'Unknown Artist',
                   album: metadata.common?.album || 'Local Music',
                   duration: Math.floor((metadata.format?.duration || 0) * 1000),
-                  url: '',
+                  url: `/api/music/stream?path=${encodeURIComponent(filePath)}`,
                   cover: coverUrl
                 };
 
@@ -115,7 +115,7 @@ class LocalMusicService {
                   artist: artistName || 'Unknown Artist',
                   album: 'Local Music',
                   duration: 0,
-                  url: '',
+                  url: `/api/music/stream?path=${encodeURIComponent(filePath)}`,
                 };
                 tracks.push(track);
               }

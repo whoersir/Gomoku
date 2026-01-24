@@ -2,12 +2,34 @@ import express from 'express';
 import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
+import fs from 'fs';
+import path from 'path';
 import { RoomManager } from './managers/RoomManager';
 import { HistoryManager } from './managers/HistoryManager';
 import { PlayerManager } from './managers/PlayerManager';
 import { SocketHandlers } from './socket/handlers';
 import { supabaseService } from './services/supabaseService';
 import { localMusicService } from './services/localMusicService';
+
+// 获取音乐目录（与localMusicService中相同）
+const getMusicDir = (): string => {
+  const envDir = process.env.MUSIC_DIR;
+  if (envDir && fs.existsSync(envDir)) {
+    return envDir;
+  }
+
+  const windowsPath = 'F:\\Music';
+  if (fs.existsSync(windowsPath)) {
+    return windowsPath;
+  }
+
+  const userMusicDir = path.join(require('os').homedir(), 'Music');
+  if (fs.existsSync(userMusicDir)) {
+    return userMusicDir;
+  }
+
+  return windowsPath;
+};
 
 const app = express();
 const httpServer = createServer(app);
@@ -210,6 +232,90 @@ app.get('/api/player/:id', async (req, res) => {
 });
 
 // ========== 音乐搜索代理API ==========
+
+// 本地音乐流 - 用于播放本地音乐文件
+app.get('/api/music/stream', async (req, res) => {
+  const { path: filePath } = req.query;
+
+  if (!filePath || typeof filePath !== 'string') {
+    res.status(400).send('Missing file path');
+    return;
+  }
+
+  try {
+    // 解码文件路径
+    const decodedPath = decodeURIComponent(filePath);
+
+    // 安全检查：确保路径在允许的目录内
+    const musicDir = getMusicDir();
+    const fs = require('fs');
+    const path = require('path');
+
+    if (!decodedPath.startsWith(musicDir)) {
+      console.error('[API] Invalid file path:', decodedPath);
+      res.status(403).send('Access denied');
+      return;
+    }
+
+    // 检查文件是否存在
+    if (!fs.existsSync(decodedPath)) {
+      console.error('[API] File not found:', decodedPath);
+      res.status(404).send('File not found');
+      return;
+    }
+
+    // 获取文件扩展名并设置Content-Type
+    const ext = path.extname(decodedPath).toLowerCase();
+    const contentTypes: { [key: string]: string } = {
+      '.mp3': 'audio/mpeg',
+      '.flac': 'audio/flac',
+      '.wav': 'audio/wav',
+      '.m4a': 'audio/mp4',
+      '.aac': 'audio/aac',
+      '.ogg': 'audio/ogg'
+    };
+
+    const contentType = contentTypes[ext] || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+
+    // 支持范围请求（用于进度条）
+    const stat = fs.statSync(decodedPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = end - start + 1;
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': contentType,
+      });
+
+      const stream = fs.createReadStream(decodedPath, { start, end });
+      stream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': contentType,
+      });
+
+      const stream = fs.createReadStream(decodedPath);
+      stream.pipe(res);
+    }
+
+    console.log(`[LocalMusic] Streaming file: ${decodedPath}`);
+  } catch (error) {
+    console.error('[API] Music stream error:', error);
+    if (!res.headersSent) {
+      res.status(500).send('Internal server error');
+    }
+  }
+});
 
 // 本地音乐搜索
 app.get('/api/music/local', async (req, res) => {

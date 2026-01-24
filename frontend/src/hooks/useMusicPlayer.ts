@@ -16,12 +16,10 @@ export function useMusicPlayer() {
       const savedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
       const savedPlayMode = localStorage.getItem(STORAGE_KEY_PLAY_MODE);
 
-      // 过滤掉没有有效 URL 的音乐（本地音乐没有 Stream API）
+      // 过滤掉没有有效 URL 的音乐
       const rawPlaylist = savedPlaylist ? JSON.parse(savedPlaylist) : musicService.getPresetPlaylist();
       const validPlaylist = rawPlaylist.filter((track: any) => {
-        return track.url &&
-               track.url.trim() !== '' &&
-               !track.url.includes('/api/music/stream/');
+        return track.url && track.url.trim() !== '';
       });
       const playlist = validPlaylist.length > 0 ? validPlaylist : musicService.getPresetPlaylist();
 
@@ -264,11 +262,9 @@ export function useMusicPlayer() {
   // }, []);
 
   const loadPlaylist = useCallback(async (tracks: MusicTrack[]) => {
-    // 过滤掉没有有效 URL 的音乐和 Stream API URL
+    // 过滤掉没有有效 URL 的音乐
     const validTracks = tracks.filter(track => {
-      return track.url &&
-             track.url.trim() !== '' &&
-             !track.url.includes('/api/music/stream/');
+      return track.url && track.url.trim() !== '';
     });
 
     if (validTracks.length === 0) {
@@ -289,11 +285,9 @@ export function useMusicPlayer() {
   const searchMusic = useCallback(async (query: string) => {
     try {
       const results = await musicService.searchMusic({ query, limit: 999999 });
-      // 过滤掉没有有效 URL 的音乐和 Stream API URL
+      // 过滤掉没有有效 URL 的音乐
       const validResults = results.filter(track => {
-        return track.url &&
-               track.url.trim() !== '' &&
-               !track.url.includes('/api/music/stream/');
+        return track.url && track.url.trim() !== '';
       });
 
       if (validResults.length > 0) {
