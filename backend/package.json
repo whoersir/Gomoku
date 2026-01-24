@@ -1,6 +1,6 @@
 {
   "name": "@whoersir/gomoku-server",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Gomoku LAN game server",
   "main": "dist/server.js",
   "repository": {

@@ -211,116 +211,20 @@ app.get('/api/player/:id', async (req, res) => {
 
 // ========== 音乐搜索代理API ==========
 
-// 代理 Netease 音乐搜索
-app.get('/api/music/netease', async (req, res) => {
-  const { keyword, limit = '10' } = req.query;
-  
-  if (!keyword || typeof keyword !== 'string') {
-    res.status(400).json({ error: '请提供搜索关键词' });
-    return;
-  }
-
-  try {
-    const params = new URLSearchParams({
-      s: keyword,
-      limit: limit.toString(),
-      type: '1',
-      offset: '0',
-    });
-
-    const response = await fetch(
-      `https://music.163.com/api/search/get?${params.toString()}`,
-      {
-        headers: {
-          'Referer': 'https://music.163.com',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('[API] Netease search error:', error);
-    res.status(500).json({ error: 'Failed to search Netease' });
-  }
-});
-
-// 代理 QQ 音乐搜索
-app.get('/api/music/qq', async (req, res) => {
-  const { keyword, limit = '10' } = req.query;
-  
-  if (!keyword || typeof keyword !== 'string') {
-    res.status(400).json({ error: '请提供搜索关键词' });
-    return;
-  }
-
-  try {
-    const params = new URLSearchParams({
-      w: keyword,
-      p: '1',
-      n: limit.toString(),
-      type: '0',
-    });
-
-    const response = await fetch(
-      `https://u.y.qq.com/cgi-bin/musicu.fcg?${params.toString()}`,
-      {
-        headers: {
-          'Referer': 'https://y.qq.com',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('[API] QQ search error:', error);
-    res.status(500).json({ error: 'Failed to search QQ Music' });
-  }
-});
-
 // 本地音乐搜索
 app.get('/api/music/local', async (req, res) => {
-  const { keyword, limit = '10' } = req.query;
-  
-  if (!keyword || typeof keyword !== 'string') {
-    res.status(400).json({ error: '请提供搜索关键词' });
-    return;
-  }
+  const { keyword, limit = '999999' } = req.query;
 
   try {
-    const results = await localMusicService.searchMusic(keyword, parseInt(limit.toString()) || 10);
+    // 允许空关键词（返回所有音乐或前 N 首）
+    const searchKeyword = keyword && typeof keyword === 'string' ? keyword : '';
+    const results = await localMusicService.searchMusic(searchKeyword, parseInt(limit.toString()) || 999999);
     // 确保返回数组
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {
     console.error('[API] Local music search error:', error);
     // 返回空数组而不是错误，避免前端 JSON 解析失败
     res.json([]);
-  }
-});
-
-// 本地音乐文件流
-app.get('/api/music/stream/:encodedPath', (req, res) => {
-  try {
-    const { encodedPath } = req.params;
-    const stream = localMusicService.getFileStream(encodedPath);
-    
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Accept-Ranges', 'bytes');
-    stream.pipe(res);
-  } catch (error) {
-    console.error('[API] Stream error:', error);
-    res.status(404).json({ error: 'File not found or access denied' });
   }
 });
 

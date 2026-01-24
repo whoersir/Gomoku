@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v1.0.2-blue)
+![Version](https://img.shields.io/badge/version-v1.0.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-stable-success)
 
@@ -286,6 +286,18 @@ Gomoku/
 
 ## 🔄 版本历史
 
+### [v1.0.3] - 2026-01-24 (Bug Fix Release)
+
+**问题修复:**
+- 🐛 Socket连接优化，修复连接失败后的重试机制
+- 🐛 添加3次自动重试，提高连接成功率
+- 🐛 优化房间列表获取的错误处理
+- 🐛 清理未使用的在线音乐服务和代码
+
+**改进:**
+- 🚀 改进错误日志和用户反馈
+- 🚀 移除不必要的依赖
+
 ### [v1.0.2] - 2026-01-23 (Package Release)
 
 **新功能:**
@@ -349,8 +361,8 @@ Gomoku/
 
 | 包名 | 版本 | 描述 | 安装命令 |
 |------|------|------|----------|
-| `@whoersir/gomoku-server` | 1.0.2 | 游戏服务器 | `npm install @whoersir/gomoku-server` |
-| `@whoersir/gomoku-client` | 1.0.2 | 游戏客户端 | `npm install @whoersir/gomoku-client` |
+| `@whoersir/gomoku-server` | 1.0.3 | 游戏服务器 | `npm install @whoersir/gomoku-server` |
+| `@whoersir/gomoku-client` | 1.0.3 | 游戏客户端 | `npm install @whoersir/gomoku-client` |
 
 **GitHub Packages:**
 - [后端包](https://github.com/whoersir/Gomoku/pkgs/npm/%40whoersir%2Fgomoku-server)

@@ -14,6 +14,8 @@ export interface Playlist {
   tracks: MusicTrack[];
 }
 
+export type PlayMode = 'sequential' | 'random' | 'single' | 'loop';
+
 export interface PlayerState {
   currentTrack: MusicTrack | null;
   isPlaying: boolean;
@@ -23,6 +25,7 @@ export interface PlayerState {
   currentTrackIndex: number;
   isMiniMode: boolean;
   playlistId: string;
+  playMode: PlayMode;
 }
 
 export interface SearchFilters {

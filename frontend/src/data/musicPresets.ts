@@ -79,3 +79,4 @@ export const STORAGE_KEY_PLAYLIST = 'music_player_playlist';
 export const STORAGE_KEY_TRACK_INDEX = 'music_player_track_index';
 export const STORAGE_KEY_VOLUME = 'music_player_volume';
 export const STORAGE_KEY_MINI_MODE = 'music_player_mini_mode';
+export const STORAGE_KEY_PLAY_MODE = 'music_player_play_mode';

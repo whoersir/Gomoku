@@ -11,6 +11,7 @@ interface LocalMusicTrack {
   duration: number;
   url: string;
   cover?: string;
+  hasCover?: boolean;
 }
 
 // 获取音乐目录 - 优先级: 环境变量 > F:\Music > 用户主目录下的 Music
@@ -38,7 +39,7 @@ const getMusicDir = (): string => {
 
 const MUSIC_DIR = getMusicDir();
 const SUPPORTED_FORMATS = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg'];
-const MUSIC_CACHE_TIME = 60 * 60 * 1000; // 1小时缓存
+const MUSIC_CACHE_TIME = 0; // 禁用缓存，强制每次重新扫描
 
 class LocalMusicService {
   private musicCache: LocalMusicTrack[] = [];
@@ -80,15 +81,27 @@ class LocalMusicService {
               try {
                 // 提取元数据
                 const metadata = await parseFile(filePath);
-                
+
+                // 提取专辑封面图片
+                let coverUrl = 'https://picsum.photos/200/200';
+                if (metadata.common?.picture && metadata.common.picture.length > 0) {
+                  try {
+                    const picture = metadata.common.picture[0];
+                    const base64Image = Buffer.from(picture.data).toString('base64');
+                    coverUrl = `data:${picture.format};base64,${base64Image}`;
+                  } catch (imgErr) {
+                    console.warn(`[LocalMusic] Failed to extract cover for ${file}:`, imgErr);
+                  }
+                }
+
                 const track: LocalMusicTrack = {
                   id: `local_${Date.now()}_${Math.random()}`,
                   title: metadata.common?.title || path.basename(file, ext),
                   artist: metadata.common?.artist || artistName || 'Unknown Artist',
                   album: metadata.common?.album || 'Local Music',
                   duration: Math.floor((metadata.format?.duration || 0) * 1000),
-                  url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
-                  cover: 'https://picsum.photos/200/200'
+                  url: '',
+                  cover: coverUrl
                 };
 
                 tracks.push(track);
@@ -102,7 +115,7 @@ class LocalMusicService {
                   artist: artistName || 'Unknown Artist',
                   album: 'Local Music',
                   duration: 0,
-                  url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
+                  url: '',
                 };
                 tracks.push(track);
               }
@@ -168,32 +181,6 @@ class LocalMusicService {
     } catch (error) {
       console.error('[LocalMusic] Search error:', error);
       return [];
-    }
-  }
-
-  /**
-   * 获取文件流
-   */
-  getFileStream(encodedPath: string) {
-    try {
-      const filePath = Buffer.from(encodedPath, 'base64').toString('utf-8');
-      
-      // 安全检查：确保路径在允许的目录内
-      const resolvedPath = path.resolve(filePath);
-      const resolvedMusicDir = path.resolve(MUSIC_DIR);
-      
-      if (!resolvedPath.startsWith(resolvedMusicDir)) {
-        throw new Error('Access denied: Path is outside music directory');
-      }
-
-      if (!fs.existsSync(filePath)) {
-        throw new Error('File not found');
-      }
-
-      return fs.createReadStream(filePath);
-    } catch (error) {
-      console.error('[LocalMusic] Error getting file stream:', error);
-      throw error;
     }
   }
 

@@ -10,13 +10,40 @@ export const useSocket = () => {
   const connect = useCallback(async (serverUrl: string) => {
     try {
       setError(null);
-      await connectSocket(serverUrl);
-      setConnected(true);
-      // 连接成功后获取socketId
-      const socket = getSocket();
-      if (socket) {
-        setSocketId(socket.id || null);
-      }
+      setConnected(false);
+      setSocketId(null);
+
+      // 添加连接重试机制
+      let retryCount = 0;
+      const maxRetries = 3;
+      const retryDelay = 1000; // 1秒
+
+      const tryConnect = async () => {
+        try {
+          await connectSocket(serverUrl);
+          setConnected(true);
+          // 连接成功后获取socketId
+          const socket = getSocket();
+          if (socket) {
+            setSocketId(socket.id || null);
+          }
+          return true;
+        } catch (err) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`[useSocket] Connection attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return tryConnect();
+          } else {
+            const errorMessage = err instanceof Error ? err.message : 'Connection failed';
+            setError(errorMessage);
+            setConnected(false);
+            return false;
+          }
+        }
+      };
+
+      await tryConnect();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Connection failed';
       setError(errorMessage);
@@ -98,10 +125,33 @@ export const useSocket = () => {
 
   const getRoomList = useCallback(async (): Promise<Room[]> => {
     try {
-      const response = await emit('getRoomList');
-      return response || [];
+      // 添加重试机制
+      let retryCount = 0;
+      const maxRetries = 3;
+      const retryDelay = 1000; // 1秒
+
+      const tryGetRoomList = async () => {
+        try {
+          const response = await emit('getRoomList');
+          return response || [];
+        } catch (err) {
+if (retryCount < maxRetries && connected) {
+        retryCount++;
+        console.log(`[useSocket] getRoomList attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return tryGetRoomList();
+      } else {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to get room list';
+            setError(errorMessage);
+            return [];
+          }
+        }
+      };
+
+      return await tryGetRoomList();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get room list');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get room list';
+      setError(errorMessage);
       return [];
     }
   }, []);

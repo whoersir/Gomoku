@@ -1,23 +1,25 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const backendUrl = process.env.VITE_BACKEND_URL || 'http://10.75.31.37:3000'
+
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'import.meta.env.VITE_BACKEND_URL': JSON.stringify(backendUrl)
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: true,
     proxy: {
-      // 方案1: Meting API代理 (网易云)
-      '/api/meting': {
-        target: 'https://meting.qjqq.cn',
+      // 后端 API 代理 (本地后端服务)
+      '/api': {
+        target: backendUrl,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/meting/, ''),
         secure: false,
-        headers: {
-          'Referer': 'https://meting.qjqq.cn/',
-          'User-Agent': 'Mozilla/5.0'
-        }
+        ws: true,
+        logLevel: 'debug'
       }
     }
   }

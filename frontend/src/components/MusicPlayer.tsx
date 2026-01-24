@@ -15,6 +15,7 @@ const MusicPlayer: React.FC = () => {
     seek,
     searchMusic,
     formatTime,
+    togglePlayMode,
     getCurrentDuration
   } = useMusicPlayer();
 
@@ -23,17 +24,34 @@ const MusicPlayer: React.FC = () => {
   const [searchError, setSearchError] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [displayProgress, setDisplayProgress] = useState(0);
   const dragStartX = useRef(0);
   const startX = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
-  const { currentTrack, isPlaying, volume, currentTime } = playerState;
+  const { currentTrack, isPlaying, volume, currentTime, playMode } = playerState;
   const duration = getCurrentDuration();
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const actualProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progress = isSeeking ? displayProgress : actualProgress;
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const playModeIcons: { [key: string]: string } = {
+    sequential: '🔁',
+    random: '🔀',
+    single: '🔂',
+    loop: '🔁'
+  };
+
+  const playModeLabels: { [key: string]: string } = {
+    sequential: '列表循环',
+    random: '随机播放',
+    single: '单曲循环',
+    loop: '列表循环'
+  };
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
@@ -62,24 +80,64 @@ const MusicPlayer: React.FC = () => {
     }
   };
 
+  // 内部搜索函数（实时搜索使用，不禁用输入框）
+  const handleDebouncedSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    try {
+      const results = await searchMusic(searchQuery);
+      if (results.length > 0) {
+        setShowPlaylist(true);
+        setSearchError('');
+      } else {
+        setSearchError('未找到相关音乐，请尝试其他关键词或流派');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('CORS') || errorMsg.includes('Failed to fetch')) {
+        setSearchError('部分API访问受限，但已尝试其他来源。建议使用免费音乐源或尝试其他关键词。');
+      } else {
+        setSearchError('搜索失败，请稍后重试');
+      }
+    }
+  };
+
+  // 实时搜索（防抖）
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      handleDebouncedSearch();
+    }, 500); // 500ms延迟
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
 
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!progressRef.current) return;
+    if (!progressRef.current || !duration) return;
 
     const rect = progressRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const width = rect.width;
-    const percentage = x / width;
+    const percentage = x / rect.width;
     const newTime = percentage * duration;
 
     seek(newTime);
   };
 
   const handleDragStart = (e: React.MouseEvent) => {
+    if (!progressRef.current || !duration) return;
+
     setIsDragging(true);
-    dragStartX.current = e.clientX;
-    startX.current = currentTime;
+    setIsSeeking(true);
+
+    const rect = progressRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const percentage = x / rect.width;
+
+    setDisplayProgress(percentage * 100);
+
     document.addEventListener('mousemove', handleDrag);
     document.addEventListener('mouseup', handleDragEnd);
   };
@@ -90,16 +148,29 @@ const MusicPlayer: React.FC = () => {
     const rect = progressRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const percentage = x / rect.width;
-    const newTime = percentage * duration;
 
-    seek(newTime);
+    setDisplayProgress(percentage * 100);
   };
 
   const handleDragEnd = () => {
+    if (!duration || !isDragging) return;
+
+    const newTime = (displayProgress / 100) * duration;
+    seek(newTime);
+
     setIsDragging(false);
+    setIsSeeking(false);
+
     document.removeEventListener('mousemove', handleDrag);
     document.removeEventListener('mouseup', handleDragEnd);
   };
+
+  // 当不在拖动时，同步 displayProgress 到实际进度
+  useEffect(() => {
+    if (!isSeeking) {
+      setDisplayProgress(actualProgress);
+    }
+  }, [actualProgress, isSeeking]);
 
   useEffect(() => {
     return () => {
@@ -125,11 +196,6 @@ const MusicPlayer: React.FC = () => {
 
       {currentTrack && (
         <div className="music-player-current">
-          <img
-            src={currentTrack.cover || 'https://picsum.photos/200/200'}
-            alt="Album Cover"
-            className="music-player-cover"
-          />
           <div className="music-player-info">
             <div className="music-player-title">{currentTrack.title}</div>
             <div className="music-player-artist">{currentTrack.artist}</div>
@@ -150,6 +216,17 @@ const MusicPlayer: React.FC = () => {
         <button onClick={playNext} title="下一首">⏭</button>
       </div>
 
+      <div className="music-player-play-mode">
+        <button
+          onClick={togglePlayMode}
+          title={playModeLabels[playMode]}
+          className="music-player-play-mode-btn"
+        >
+          {playModeIcons[playMode]}
+        </button>
+        <span className="music-player-play-mode-label">{playModeLabels[playMode]}</span>
+      </div>
+
       <div className="music-player-time">
         <span>{formatTime(currentTime)}</span>
         <div
@@ -159,7 +236,7 @@ const MusicPlayer: React.FC = () => {
         >
           <div
             className="music-player-progress-bar"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progress}%`, transition: isSeeking ? 'none' : 'width 0.1s' }}
             onMouseDown={handleDragStart}
           />
         </div>
@@ -190,6 +267,7 @@ const MusicPlayer: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="music-player-search-input"
               disabled={isSearching}
+              autoComplete="off"
             />
             <button type="submit" disabled={isSearching}>
               {isSearching ? '⏳' : '🔍'}
@@ -216,11 +294,6 @@ const MusicPlayer: React.FC = () => {
                 }`}
                 onClick={() => playTrack(track, index)}
               >
-                <img
-                  src={track.cover || 'https://picsum.photos/200/200'}
-                  alt={track.title}
-                  className="playlist-item-cover"
-                />
                 <div className="playlist-item-info">
                   <div className="playlist-item-title">{track.title}</div>
                   <div className="playlist-item-artist">{track.artist}</div>

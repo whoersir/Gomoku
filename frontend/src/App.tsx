@@ -15,13 +15,27 @@ import { useGameState } from './hooks/useGameState';
 
 type PageState = 'connect' | 'roomList' | 'game';
 
+// localStorage keys
+const STORAGE_KEYS = {
+  SERVER_URL: 'gomoku_server_url',
+  PLAYER_NAME: 'gomoku_player_name',
+  PAGE_STATE: 'gomoku_page_state',
+  ROOM_ID: 'gomoku_room_id',
+  PLAYER_COLOR: 'gomoku_player_color',
+  IS_SPECTATOR: 'gomoku_is_spectator',
+  IS_ADMIN: 'gomoku_is_admin'
+};
+
 function App() {
-  const [page, setPage] = useState<PageState>('connect');
+  const [page, setPage] = useState<PageState>(() => {
+    const savedPage = localStorage.getItem(STORAGE_KEYS.PAGE_STATE);
+    return (savedPage as PageState) || 'connect';
+  });
   const [loading, setLoading] = useState(false);
-  const [playerName, setPlayerName] = useState('');
-  const [serverUrl, setServerUrl] = useState('');
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '');
+  const [serverUrl, setServerUrl] = useState(() => localStorage.getItem(STORAGE_KEYS.SERVER_URL) || '');
   const [victoryModalVisible, setVictoryModalVisible] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true');
 
   const socket = useSocket();
   const gameState = useGameState();
@@ -33,17 +47,26 @@ function App() {
       setLoading(false);
       setServerUrl(url);
       setPlayerName(name);
+
       // 验证管理员密码
       const ADMIN_PASSWORD = 'admin123'; // 默认管理员密码
       if (adminPassword === ADMIN_PASSWORD) {
         setIsAdmin(true);
+        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'true');
         console.log('[App] Admin login successful');
       } else if (adminPassword && adminPassword !== ADMIN_PASSWORD) {
         alert('管理员密码错误，将以普通用户身份连接');
         setIsAdmin(false);
+        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
       } else {
         setIsAdmin(false);
+        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
       }
+
+      // 保存到 localStorage
+      localStorage.setItem(STORAGE_KEYS.SERVER_URL, url);
+      localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
+      localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
       setPage('roomList');
     } catch (err) {
       setLoading(false);
@@ -73,6 +96,11 @@ function App() {
     setLoading(false);
     if (result) {
       gameState.joinedRoom(result.color, result.gameState);
+      // 保存房间状态到 localStorage
+      localStorage.setItem(STORAGE_KEYS.ROOM_ID, roomId);
+      localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, String(result.color));
+      localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'false');
+      localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
     }
   };
@@ -84,6 +112,11 @@ function App() {
     setLoading(false);
     if (result) {
       gameState.watchingRoom(result.gameState);
+      // 保存观战状态到 localStorage
+      localStorage.setItem(STORAGE_KEYS.ROOM_ID, roomId);
+      localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, '');
+      localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'true');
+      localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
     }
   };
@@ -105,10 +138,15 @@ function App() {
   const handleBackToRoomList = async () => {
     // 先通知服务器离开房间
     await socket.emit('leaveRoom', {});
-    
+
     gameState.leaveRoom();
+    // 清理房间状态
+    localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+    localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+    localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+    localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
     setPage('roomList');
-    
+
     // 立即刷新房间列表，确保UI更新
     setTimeout(async () => {
       const rooms = await socket.getRoomList();
@@ -120,6 +158,14 @@ function App() {
   const handleDisconnect = () => {
     socket.disconnect();
     gameState.leaveRoom();
+    // 清理所有 localStorage
+    localStorage.removeItem(STORAGE_KEYS.SERVER_URL);
+    localStorage.removeItem(STORAGE_KEYS.PLAYER_NAME);
+    localStorage.removeItem(STORAGE_KEYS.PAGE_STATE);
+    localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+    localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+    localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+    localStorage.removeItem(STORAGE_KEYS.IS_ADMIN);
     setPage('connect');
   };
 
@@ -209,6 +255,88 @@ function App() {
       setVictoryModalVisible(true);
     }
   }, [gameState.gameState?.status, gameState.gameState?.winner, gameState.isSpectator]);
+
+  // 页面加载时恢复连接状态
+  useEffect(() => {
+    const restoreConnection = async () => {
+      // 如果有保存的连接信息和页面状态，尝试恢复连接
+      if (serverUrl && playerName && (page === 'roomList' || page === 'game')) {
+        console.log('[App] Restoring connection from localStorage...');
+        try {
+          setLoading(true);
+          await socket.connect(serverUrl);
+          setLoading(false);
+
+          // 如果之前在游戏页面，尝试重新加入房间
+          if (page === 'game') {
+            const savedRoomId = localStorage.getItem(STORAGE_KEYS.ROOM_ID);
+            const savedPlayerColor = localStorage.getItem(STORAGE_KEYS.PLAYER_COLOR);
+            const savedIsSpectator = localStorage.getItem(STORAGE_KEYS.IS_SPECTATOR) === 'true';
+
+            if (savedRoomId) {
+              console.log('[App] Rejoining room:', savedRoomId);
+              try {
+                if (savedIsSpectator) {
+                  const result = await socket.watchRoom(savedRoomId, playerName);
+                  if (result) {
+                    gameState.watchingRoom(result.gameState);
+                  } else {
+                    // 观战失败（房间不存在），返回房间列表
+                    console.warn('[App] Failed to watch room, room may not exist');
+                    localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+                    localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+                    localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+                    localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
+                    setPage('roomList');
+                  }
+                } else if (savedPlayerColor === '1' || savedPlayerColor === '2') {
+                  const result = await socket.joinRoom(savedRoomId, playerName);
+                  if (result) {
+                    gameState.joinedRoom(parseInt(savedPlayerColor) as 1 | 2, result.gameState);
+                  } else {
+                    // 加入房间失败（房间不存在），返回房间列表
+                    console.warn('[App] Failed to join room, room may not exist');
+                    localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+                    localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+                    localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+                    localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
+                    setPage('roomList');
+                  }
+                } else {
+                  // 没有有效的玩家颜色，返回房间列表
+                  setPage('roomList');
+                }
+              } catch (err) {
+                console.error('[App] Failed to rejoin room:', err);
+                // 如果重新加入房间失败，返回房间列表
+                localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+                localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+                localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+                localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
+                setPage('roomList');
+              }
+            } else {
+              // 没有房间ID，返回房间列表
+              setPage('roomList');
+            }
+          }
+        } catch (err) {
+          console.error('[App] Failed to restore connection:', err);
+          // 如果连接失败，清理 localStorage 并返回登录页
+          localStorage.removeItem(STORAGE_KEYS.SERVER_URL);
+          localStorage.removeItem(STORAGE_KEYS.PLAYER_NAME);
+          localStorage.removeItem(STORAGE_KEYS.PAGE_STATE);
+          localStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+          localStorage.removeItem(STORAGE_KEYS.PLAYER_COLOR);
+          localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
+          setLoading(false);
+          setPage('connect');
+        }
+      }
+    };
+
+    restoreConnection();
+  }, []); // 只在组件挂载时执行一次
 
   // Listen for custom events from child components
   useEffect(() => {
