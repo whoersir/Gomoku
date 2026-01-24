@@ -7,6 +7,7 @@ import { HistoryManager } from './managers/HistoryManager';
 import { PlayerManager } from './managers/PlayerManager';
 import { SocketHandlers } from './socket/handlers';
 import { supabaseService } from './services/supabaseService';
+import { localMusicService } from './services/localMusicService';
 
 const app = express();
 const httpServer = createServer(app);
@@ -285,6 +286,39 @@ app.get('/api/music/qq', async (req, res) => {
   } catch (error) {
     console.error('[API] QQ search error:', error);
     res.status(500).json({ error: 'Failed to search QQ Music' });
+  }
+});
+
+// 本地音乐搜索
+app.get('/api/music/local', async (req, res) => {
+  const { keyword, limit = '10' } = req.query;
+  
+  if (!keyword || typeof keyword !== 'string') {
+    res.status(400).json({ error: '请提供搜索关键词' });
+    return;
+  }
+
+  try {
+    const results = await localMusicService.searchMusic(keyword, parseInt(limit.toString()) || 10);
+    res.json(results);
+  } catch (error) {
+    console.error('[API] Local music search error:', error);
+    res.status(500).json({ error: 'Failed to search local music' });
+  }
+});
+
+// 本地音乐文件流
+app.get('/api/music/stream/:encodedPath', (req, res) => {
+  try {
+    const { encodedPath } = req.params;
+    const stream = localMusicService.getFileStream(encodedPath);
+    
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Accept-Ranges', 'bytes');
+    stream.pipe(res);
+  } catch (error) {
+    console.error('[API] Stream error:', error);
+    res.status(404).json({ error: 'File not found or access denied' });
   }
 });
 

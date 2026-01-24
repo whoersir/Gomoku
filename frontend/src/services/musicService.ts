@@ -3,6 +3,7 @@ import { presetPlaylist } from '../data/musicPresets';
 import { jamendoService } from './jamendoService';
 import { neteaseService } from './neteaseService';
 import { musicApiService } from './musicApiService';
+import { localMusicService } from './localMusicService';
 
 class MusicService {
   private readonly QQ_MUSIC_SEARCH = 'https://c.y.qq.com/v8/fcg-bin/fcg_v8_search_new_platform.fcg';
@@ -14,8 +15,20 @@ class MusicService {
         return presetPlaylist;
       }
 
-      // 搜索策略：Jamendo -> musicAPI多源 -> 网易云音乐 -> 预设列表兜底
-      // 1. 首选：Jamendo开放音乐平台（可播放完整歌曲）
+      // 搜索策略：本地音乐 -> Jamendo -> musicAPI多源 -> 网易云音乐 -> 预设列表兜底
+      // 1. 首选：本地音乐（速度最快，完整歌曲）
+      try {
+        console.log('[MusicService] Trying local music library...');
+        const localResults = await localMusicService.searchMusic(filters.query, filters.limit || 10);
+        if (localResults.length > 0) {
+          console.log(`[MusicService] Local music found ${localResults.length} tracks`);
+          return localResults;
+        }
+      } catch (error) {
+        console.warn('[MusicService] Local music search failed:', error);
+      }
+
+      // 2. Jamendo开放音乐平台（可播放完整歌曲）
       try {
         console.log('[MusicService] Trying Jamendo API (full-length tracks)...');
         const jamendoResults = await jamendoService.searchJamendo(filters.query, filters.limit || 10);
@@ -27,7 +40,7 @@ class MusicService {
         console.warn('[MusicService] Jamendo search failed:', error);
       }
 
-      // 2. 次选：musicAPI 多源搜索（Netease + QQ）
+      // 3. 次选：musicAPI 多源搜索（Netease + QQ）
       try {
         console.log('[MusicService] Trying musicAPI multi-source search...');
         const multiSourceResults = await musicApiService.searchMultipleSources(filters.query, filters.limit || 10);
@@ -39,7 +52,7 @@ class MusicService {
         console.warn('[MusicService] musicAPI search failed:', error);
       }
 
-      // 3. 备用：网易云音乐（完整歌曲）
+      // 4. 备用：网易云音乐（完整歌曲）
       try {
         console.log('[MusicService] Trying Netease API (full-length tracks)...');
         const neteaseResults = await neteaseService.searchMusic(filters.query, filters.limit || 10);

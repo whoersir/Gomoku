@@ -185,7 +185,7 @@ const MusicPlayer: React.FC = () => {
           <form onSubmit={handleSearch}>
             <input
               type="text"
-              placeholder="搜索音乐..."
+              placeholder="搜索音乐（支持本地、在线）..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="music-player-search-input"
