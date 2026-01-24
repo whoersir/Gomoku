@@ -94,18 +94,23 @@ class LocalMusicService {
                   }
                 }
 
+                const encodedPath = encodeURIComponent(filePath);
+                const streamUrl = `/api/music/stream?path=${encodedPath}`;
+
                 const track: LocalMusicTrack = {
                   id: `local_${Date.now()}_${Math.random()}`,
                   title: metadata.common?.title || path.basename(file, ext),
                   artist: metadata.common?.artist || artistName || 'Unknown Artist',
                   album: metadata.common?.album || 'Local Music',
                   duration: Math.floor((metadata.format?.duration || 0) * 1000),
-                  url: `/api/music/stream?path=${encodeURIComponent(filePath)}`,
+                  url: streamUrl,
                   cover: coverUrl
                 };
 
-                tracks.push(track);
                 console.log(`[LocalMusic] Scanned: ${track.title} by ${track.artist}`);
+                console.log(`[LocalMusic] filePath: ${filePath}`);
+                console.log(`[LocalMusic] streamUrl: ${streamUrl}`);
+                tracks.push(track);
               } catch (err) {
                 console.warn(`[LocalMusic] Failed to parse metadata for ${file}:`, err);
                 // 即使元数据提取失败，仍然添加基本信息

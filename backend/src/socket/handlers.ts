@@ -792,31 +792,31 @@ export class SocketHandlers {
             }
           }
 
-          // 如果所有玩家都退出，关闭房间
-          if (room.getPlayerCount() === 0) {
-            console.log(`[Socket] No players left in room ${roomId}, closing room`);
-            io.to(roomId).emit('roomClosed', {
-              roomId,
-              reason: 'All players have left the room',
-            });
-            this.roomManager.removeRoom(roomId);
-          } else {
-            // 发送玩家离开事件
+          // 不再自动关闭房间，玩家退出后房间保持开放
+          // 房间只能通过closeRoom接口显式关闭
+          if (room.getPlayerCount() > 0) {
+            // 房间还有其他玩家，发送玩家离开事件
             io.to(roomId).emit('playerLeft', {
               playerId: socket.id,
               playerName,
               playerColor,
             });
-            
+
             const roomInfo = room.getRoomInfo();
             io.to(roomId).emit('roomInfo', roomInfo);
-            
+
             const gameState = room.getGameState();
             if (gameState) {
               io.to(roomId).emit('gameStateUpdate', gameState);
             }
+          } else {
+            // 房间已空，但保持开放
+            console.log(`[Socket] Room ${roomId} is now empty but remains open`);
+            // 更新房间信息，让列表反映空房间状态
+            const roomInfo = room.getRoomInfo();
+            io.to(roomId).emit('roomInfo', roomInfo);
           }
-          
+
           this.playerNames.delete(socket.id);
         }
       }
@@ -888,16 +888,14 @@ export class SocketHandlers {
             }
           }
 
-          // 如果所有玩家都退出了（即使还有观战者），关闭房间
+          // 不再自动关闭房间，即使所有玩家退出，房间也保持开放
+          // 房间只能通过closeRoom接口显式关闭
+
           if (room.getPlayerCount() === 0) {
-            console.log(`[Socket] No players left in room ${roomId}, closing room`);
-            // 通知所有在房间内的人（包括观战者）房间即将关闭
-            io.to(roomId).emit('roomClosed', {
-              roomId,
-              reason: 'All players have left the room',
-            });
-            // 删除房间
-            this.roomManager.removeRoom(roomId);
+            console.log(`[Socket] Room ${roomId} is now empty but remains open`);
+            // 广播空的房间信息
+            const roomInfo = room.getRoomInfo();
+            io.to(roomId).emit('roomInfo', roomInfo);
             io.emit('roomListUpdate', this.roomManager.getRoomList());
           } else {
             // 发送玩家离开事件

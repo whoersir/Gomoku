@@ -325,6 +325,12 @@ app.get('/api/music/local', async (req, res) => {
     // 允许空关键词（返回所有音乐或前 N 首）
     const searchKeyword = keyword && typeof keyword === 'string' ? keyword : '';
     const results = await localMusicService.searchMusic(searchKeyword, parseInt(limit.toString()) || 999999);
+
+    console.log('[API] /api/music/local returning', results.length, 'tracks');
+    if (results.length > 0) {
+      console.log('[API] First track URL:', results[0].url);
+    }
+
     // 确保返回数组
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {

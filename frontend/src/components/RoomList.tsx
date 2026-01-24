@@ -73,130 +73,185 @@ export const RoomList: React.FC<RoomListProps> = ({
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full max-w-6xl mx-auto px-4">
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-danger/20 border border-danger rounded text-danger">
+          <div className="mb-6 p-4 bg-danger/20 border border-danger rounded-lg text-danger">
             <div className="font-semibold">❌ 错误</div>
             <div className="text-sm mt-1">{error}</div>
           </div>
         )}
 
-        {/* Create Room Button */}
-        <div className="mb-6">
+        {/* Create Room Button Section */}
+        <div className="mb-8">
           <button
             onClick={handleCreateRoom}
             disabled={loading}
-            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group relative w-full py-4 px-6 bg-gradient-to-r from-primary/80 to-primary hover:from-primary hover:to-primary/90 
+                       text-white font-semibold rounded-xl shadow-lg hover:shadow-xl 
+                       transition-all duration-300 transform hover:scale-[1.01] 
+                       disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+                       border border-primary/30 overflow-hidden"
           >
-            {loading ? '创建中...' : '➕ 创建新房间'}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
+                        -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-2xl">✨</span>
+              <span className="text-lg">{loading ? '创建中...' : '创建新房间'}</span>
+              <span className="text-2xl">🎮</span>
+            </div>
           </button>
+        </div>
+
+        {/* Room List Header */}
+        <div className="mb-5">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <span>🏠</span>
+            <span>可用房间</span>
+            {!loading && rooms.length > 0 && (
+              <span className="text-sm font-normal text-dark-text-tertiary bg-dark-bg-tertiary px-3 py-1 rounded-full">
+                {rooms.length} 个
+              </span>
+            )}
+          </h2>
         </div>
 
         {/* Room List */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">可用房间</h2>
           {loading ? (
-            <div className="text-center text-dark-text-tertiary py-8">加载中...</div>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mb-4"></div>
+              <div className="text-dark-text-tertiary">正在加载房间列表...</div>
+            </div>
           ) : rooms.length === 0 ? (
-            <div className="text-center text-dark-text-tertiary py-8">暂无可用房间</div>
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🎯</div>
+              <div className="text-dark-text-secondary text-lg mb-2">暂无可用房间</div>
+              <div className="text-dark-text-tertiary text-sm">点击上方按钮创建一个新房间开始游戏</div>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
               {rooms.map((room) => (
                 <div
                   key={room.roomId}
-                  className={`card-base cursor-pointer transition-all hover:border-primary ${
+                  className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
                     selectedRoomId === room.roomId
-                      ? 'border-primary bg-primary/10'
-                      : 'hover:bg-dark-bg-tertiary'
+                      ? 'border-primary bg-primary/5 shadow-lg shadow-primary/20 scale-[1.02]'
+                      : 'border-dark-border bg-dark-bg-secondary hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.01]'
                   }`}
-                  onClick={() => setSelectedRoomId(room.roomId)}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="font-semibold">
+                  {/* Status Badge */}
+                  <div
+                    className={`absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                      room.status === 'waiting'
+                        ? 'bg-success/80 text-white'
+                        : room.status === 'playing'
+                          ? 'bg-warning/80 text-white'
+                          : 'bg-danger/80 text-white'
+                    }`}
+                  >
+                    {room.status === 'waiting'
+                      ? '⏳ 等待中'
+                      : room.status === 'playing'
+                        ? '🎮 进行中'
+                        : '🏁 已结束'}
+                  </div>
+
+                  {/* Room Info */}
+                  <div className="p-6">
+                    <div className="mb-4">
+                      <div className="text-xl font-bold text-white mb-2 pr-16">
                         {room.roomName || `房间 #${room.roomId}`}
                       </div>
-                      <div className="text-xs text-dark-text-tertiary mt-1">
-                        {new Date(room.createdAt).toLocaleTimeString()}
+                      <div className="text-xs text-dark-text-tertiary flex items-center gap-2">
+                        <span>🕐</span>
+                        <span>{new Date(room.createdAt).toLocaleTimeString()}</span>
                       </div>
                     </div>
-                    <div
-                      className={`text-xs px-2 py-1 rounded ${
-                        room.status === 'waiting'
-                          ? 'bg-secondary/20 text-secondary'
-                          : room.status === 'playing'
-                            ? 'bg-warning/20 text-warning'
-                            : 'bg-danger/20 text-danger'
-                      }`}
-                    >
-                      {room.status === 'waiting'
-                        ? '等待中'
-                        : room.status === 'playing'
-                          ? '进行中'
-                          : '已结束'}
-                    </div>
-                  </div>
 
-                  <div className="space-y-1 text-sm mb-3">
-                    <div className="text-dark-text-secondary">
-                      {room.blackPlayer
-                        ? `黑棋: ${room.blackPlayer.name}`
-                        : '黑棋: 等待玩家'}
-                    </div>
-                    <div className="text-dark-text-secondary">
-                      {room.whitePlayer
-                        ? `白棋: ${room.whitePlayer.name}`
-                        : '白棋: 等待玩家'}
-                    </div>
-                    {room.spectatorCount !== undefined && room.spectatorCount > 0 && (
-                      <div className="text-dark-text-tertiary text-xs">
-                        👁️ {room.spectatorCount} 名观战者
+                    {/* Players Info */}
+                    <div className="space-y-2 mb-5">
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${
+                        room.blackPlayer
+                          ? 'bg-dark-bg-tertiary'
+                          : 'bg-dark-bg-tertiary/50 opacity-60'
+                      }`}>
+                        <span className="text-lg">⚫</span>
+                        <span className="text-sm text-dark-text-secondary">
+                          {room.blackPlayer
+                            ? room.blackPlayer.name
+                            : '等待玩家加入...'}
+                        </span>
                       </div>
-                    )}
-                  </div>
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${
+                        room.whitePlayer
+                          ? 'bg-dark-bg-tertiary'
+                          : 'bg-dark-bg-tertiary/50 opacity-60'
+                      }`}>
+                        <span className="text-lg">⚪</span>
+                        <span className="text-sm text-dark-text-secondary">
+                          {room.whitePlayer
+                            ? room.whitePlayer.name
+                            : '等待玩家加入...'}
+                        </span>
+                      </div>
+                      {room.spectatorCount !== undefined && room.spectatorCount > 0 && (
+                        <div className="text-dark-text-tertiary text-xs flex items-center gap-1">
+                          <span>👁️</span>
+                          <span>{room.spectatorCount} 名观战者</span>
+                        </div>
+                      )}
+                    </div>
 
-                  <div className="space-y-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleJoinRoom(room.roomId);
-                      }}
-                      disabled={room.playerCount >= 2 || loading}
-                      className="btn-primary w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {room.playerCount >= 2
-                        ? '房间已满'
-                        : loading
-                          ? '处理中...'
-                          : '加入房间'}
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWatchRoom(room.roomId);
-                      }}
-                      disabled={loading}
-                      className="btn-secondary w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? '处理中...' : '👁️ 实时观战'}
-                    </button>
-
-                    {/* Close Room Button - Visible to room owner or admin */}
-                    {((room.blackPlayer && playerSocketId === room.blackPlayer.id) || isAdmin) && (
+                    {/* Action Buttons */}
+                    <div className="space-y-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          console.log(`[RoomList] Close button clicked - roomId: ${room.roomId}, isAdmin: ${isAdmin}, playerSocketId: ${playerSocketId}`);
-                          onCloseRoom(room.roomId);
-                        }}
-                        disabled={loading}
-                        className="btn-danger w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleJoinRoom(room.roomId)}
+                        disabled={room.playerCount >= 2 || loading}
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-primary/90 to-primary 
+                                   hover:from-primary hover:to-primary/95
+                                   text-white font-semibold rounded-lg
+                                   transition-all duration-200 
+                                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary/90
+                                   flex items-center justify-center gap-2"
                       >
-                        {loading ? '关闭中...' : isAdmin ? '🔧 管理员关闭' : '🗑️ 关闭房间'}
+                        <span>🚪</span>
+                        <span>{room.playerCount >= 2 ? '房间已满' : '加入房间'}</span>
                       </button>
-                    )}
+
+                      <button
+                        onClick={() => handleWatchRoom(room.roomId)}
+                        disabled={loading}
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-secondary/90 to-secondary 
+                                   hover:from-secondary hover:to-secondary/95
+                                   text-white font-semibold rounded-lg
+                                   transition-all duration-200 
+                                   disabled:opacity-50 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2"
+                      >
+                        <span>👁️</span>
+                        <span>实时观战</span>
+                      </button>
+
+                      {/* Close Room Button */}
+                      {((room.blackPlayer && playerSocketId === room.blackPlayer.id) || isAdmin) && (
+                        <button
+                          onClick={() => {
+                            console.log(`[RoomList] Close button clicked - roomId: ${room.roomId}`);
+                            onCloseRoom(room.roomId);
+                          }}
+                          disabled={loading}
+                          className="w-full py-2 px-4 bg-danger/10 hover:bg-danger/20
+                                     text-danger font-semibold rounded-lg
+                                     transition-all duration-200 border border-danger/30
+                                     disabled:opacity-50 disabled:cursor-not-allowed
+                                     flex items-center justify-center gap-2"
+                        >
+                          <span>{isAdmin ? '🔧' : '🗑️'}</span>
+                          <span>{isAdmin ? '管理员关闭' : '关闭房间'}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -506,9 +506,23 @@
   text-overflow: ellipsis;
 }
 
+.playlist-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .playlist-item-artist {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-item-album {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -25,13 +25,17 @@ class LocalMusicService {
       }
 
       const data: LocalMusicResponse[] = await response.json();
-      
+
       if (!Array.isArray(data)) {
         console.warn('[LocalMusicService] Invalid response format');
         return [];
       }
 
       console.log(`[LocalMusicService] Found ${data.length} local tracks`);
+      if (data.length > 0) {
+        console.log('[LocalMusicService] First track raw data:', data[0]);
+        console.log('[LocalMusicService] First track URL:', data[0].url);
+      }
       return data.map(track => ({
         id: track.id,
         title: track.title,

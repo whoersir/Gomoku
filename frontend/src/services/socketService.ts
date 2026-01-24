@@ -93,34 +93,56 @@ export const getSocket = (): Socket | null => {
 
 export const emit = (event: string, data?: any, timeout: number = 10000): Promise<any> => {
   return new Promise((resolve, reject) => {
+    const performEmit = () => {
+      console.log(`[socketService] emit event:`, event, data);
+      let timeoutId: NodeJS.Timeout;
+
+      const cleanup = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      timeoutId = setTimeout(() => {
+        cleanup();
+        const errorMsg = `Timeout waiting for response to ${event}`;
+        console.error(`[socketService] emit error - ${event}:`, errorMsg);
+        reject(new Error(errorMsg));
+      }, timeout);
+
+      socket!.emit(event, data, (response: any) => {
+        cleanup();
+        console.log(`[socketService] received response for ${event}:`, response);
+        resolve(response);
+      });
+    };
+
+    // 等待 socket 连接
     if (!socket?.connected) {
       const errorMsg = 'Socket not connected';
-      console.error(`[socketService] emit error - ${event}:`, errorMsg);
-      reject(new Error(errorMsg));
+      console.warn(`[socketService] emit warning - ${event}: ${errorMsg}, waiting for connection...`);
+
+      // 设置一个定时器等待连接
+      const waitForConnection = setInterval(() => {
+        if (socket?.connected) {
+          clearInterval(waitForConnection);
+          performEmit();
+        }
+      }, 100);
+
+      // 超时后取消
+      setTimeout(() => {
+        clearInterval(waitForConnection);
+        if (!socket?.connected) {
+          console.error(`[socketService] emit error - ${event}:`, errorMsg);
+          reject(new Error(errorMsg));
+        }
+      }, timeout);
+
       return;
     }
 
-    console.log(`[socketService] emit event:`, event, data);
-    let timeoutId: NodeJS.Timeout;
-
-    const cleanup = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    timeoutId = setTimeout(() => {
-      cleanup();
-      const errorMsg = `Timeout waiting for response to ${event}`;
-      console.error(`[socketService] emit error - ${event}:`, errorMsg);
-      reject(new Error(errorMsg));
-    }, timeout);
-
-    socket.emit(event, data, (response: any) => {
-      cleanup();
-      console.log(`[socketService] received response for ${event}:`, response);
-      resolve(response);
-    });
+    performEmit();
   });
 };
 

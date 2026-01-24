@@ -125,6 +125,12 @@ export const useSocket = () => {
 
   const getRoomList = useCallback(async (): Promise<Room[]> => {
     try {
+      // 检查 socket 是否连接
+      if (!connected) {
+        console.warn('[useSocket] getRoomList: Socket not connected, skipping');
+        return [];
+      }
+
       // 添加重试机制
       let retryCount = 0;
       const maxRetries = 3;
@@ -135,12 +141,12 @@ export const useSocket = () => {
           const response = await emit('getRoomList');
           return response || [];
         } catch (err) {
-if (retryCount < maxRetries && connected) {
-        retryCount++;
-        console.log(`[useSocket] getRoomList attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-        return tryGetRoomList();
-      } else {
+          if (retryCount < maxRetries && connected) {
+            retryCount++;
+            console.log(`[useSocket] getRoomList attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return tryGetRoomList();
+          } else {
             const errorMessage = err instanceof Error ? err.message : 'Failed to get room list';
             setError(errorMessage);
             return [];
@@ -154,7 +160,7 @@ if (retryCount < maxRetries && connected) {
       setError(errorMessage);
       return [];
     }
-  }, []);
+  }, [connected]); // 添加 connected 依赖
 
   const watchRoom = useCallback(
     async (roomId: string, spectatorName: string): Promise<{ gameState: GameState } | null> => {

@@ -16,6 +16,13 @@ class MusicService {
         const localResults = await localMusicService.searchMusic(filters.query, filters.limit || 10);
         if (localResults.length > 0) {
           console.log(`[MusicService] Local music found ${localResults.length} tracks`);
+          if (localResults.length > 0) {
+            console.log('[MusicService] First track before return:', {
+              title: localResults[0].title,
+              url: localResults[0].url,
+              urlType: typeof localResults[0].url
+            });
+          }
           return localResults;
         }
       } catch (error) {

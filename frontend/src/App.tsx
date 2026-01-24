@@ -136,7 +136,7 @@ function App() {
   };
 
   const handleBackToRoomList = async () => {
-    // 先通知服务器离开房间
+    // 通知服务器离开房间
     await socket.emit('leaveRoom', {});
 
     gameState.leaveRoom();
@@ -147,12 +147,14 @@ function App() {
     localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
     setPage('roomList');
 
-    // 立即刷新房间列表，确保UI更新
-    setTimeout(async () => {
-      const rooms = await socket.getRoomList();
-      console.log('[App] Room list refreshed after leaving:', rooms);
-      gameState.updateRooms(rooms);
-    }, 100);
+    // 立即刷新房间列表，确保UI更新（仅在socket连接时）
+    if (socket.connected) {
+      setTimeout(async () => {
+        const rooms = await socket.getRoomList();
+        console.log('[App] Room list refreshed after leaving:', rooms);
+        gameState.updateRooms(rooms);
+      }, 100);
+    }
   };
 
   const handleDisconnect = () => {
@@ -232,7 +234,7 @@ function App() {
 
   // Load room list periodically and listen to updates
   useEffect(() => {
-    if (page === 'roomList') {
+    if (page === 'roomList' && socket.connected) {
       const loadRooms = async () => {
         const rooms = await socket.getRoomList();
         console.log('[App] Room list loaded:', rooms);
@@ -242,12 +244,12 @@ function App() {
       // Initial load
       loadRooms();
 
-      // Reload every 1.5 seconds for faster updates
-      const interval = setInterval(loadRooms, 1500);
+      // Reload every 3 seconds for updates (从1.5秒增加到3秒，减少请求频率)
+      const interval = setInterval(loadRooms, 3000);
 
       return () => clearInterval(interval);
     }
-  }, [page, socket.getRoomList, gameState.updateRooms]); // 使用稳定的函数引用，避免无限循环
+  }, [page, socket.connected, socket.getRoomList, gameState.updateRooms]); // 添加 connected 依赖
 
   // Show victory modal when game is finished
   useEffect(() => {

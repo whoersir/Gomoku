@@ -30,6 +30,7 @@ const MusicPlayer: React.FC = () => {
   const startX = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const searchCache = useRef<Map<string, any>>(new Map()); // 搜索缓存
 
   const { currentTrack, isPlaying, volume, currentTime, playMode } = playerState;
   const duration = getCurrentDuration();
@@ -52,13 +53,30 @@ const MusicPlayer: React.FC = () => {
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
+
+    // 检查缓存
+    if (searchCache.current.has(trimmedQuery)) {
+      console.log('[MusicPlayer] Using cached search results for:', trimmedQuery);
+      const cachedResults = searchCache.current.get(trimmedQuery);
+      if (cachedResults && cachedResults.length > 0) {
+        setShowPlaylist(true);
+        setSearchError('');
+      } else {
+        setSearchError('未找到相关音乐，请尝试其他关键词或流派');
+      }
+      return;
+    }
 
     setIsSearching(true);
     setSearchError('');
 
     try {
       const results = await searchMusic(searchQuery);
+      // 缓存结果
+      searchCache.current.set(trimmedQuery, results);
+
       if (results.length > 0) {
         setShowPlaylist(true);
         setSearchError('');
@@ -82,10 +100,30 @@ const MusicPlayer: React.FC = () => {
 
   // 内部搜索函数（实时搜索使用，不禁用输入框）
   const handleDebouncedSearch = async () => {
-    if (!searchQuery.trim()) return;
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
+
+    // 检查缓存
+    if (searchCache.current.has(trimmedQuery)) {
+      console.log('[MusicPlayer] Using cached search results for:', trimmedQuery);
+      const cachedResults = searchCache.current.get(trimmedQuery);
+      if (cachedResults && cachedResults.length > 0) {
+        setShowPlaylist(true);
+        setSearchError('');
+      } else {
+        setSearchError('未找到相关音乐，请尝试其他关键词或流派');
+      }
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError('');
 
     try {
       const results = await searchMusic(searchQuery);
+      // 缓存结果
+      searchCache.current.set(trimmedQuery, results);
+
       if (results.length > 0) {
         setShowPlaylist(true);
         setSearchError('');
@@ -101,6 +139,8 @@ const MusicPlayer: React.FC = () => {
       } else {
         setSearchError('搜索失败，请稍后重试');
       }
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -108,7 +148,7 @@ const MusicPlayer: React.FC = () => {
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       handleDebouncedSearch();
-    }, 500); // 500ms延迟
+    }, 800); // 800ms延迟，增加防抖时间减少重复搜索
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
@@ -262,7 +302,7 @@ const MusicPlayer: React.FC = () => {
           <form onSubmit={handleSearch}>
             <input
               type="text"
-              placeholder="搜索音乐（支持本地、在线）..."
+              placeholder="搜索音乐（支持本地）"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="music-player-search-input"
@@ -296,7 +336,10 @@ const MusicPlayer: React.FC = () => {
               >
                 <div className="playlist-item-info">
                   <div className="playlist-item-title">{track.title}</div>
-                  <div className="playlist-item-artist">{track.artist}</div>
+                  <div className="playlist-item-meta">
+                    <span className="playlist-item-artist">{track.artist}</span>
+                    <span className="playlist-item-album">{track.album}</span>
+                  </div>
                 </div>
                 {isPlaying && currentTrack?.id === track.id && (
                   <div className="playlist-item-playing">▶</div>

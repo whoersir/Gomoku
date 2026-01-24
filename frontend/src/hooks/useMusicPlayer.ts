@@ -16,12 +16,8 @@ export function useMusicPlayer() {
       const savedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
       const savedPlayMode = localStorage.getItem(STORAGE_KEY_PLAY_MODE);
 
-      // 过滤掉没有有效 URL 的音乐
-      const rawPlaylist = savedPlaylist ? JSON.parse(savedPlaylist) : musicService.getPresetPlaylist();
-      const validPlaylist = rawPlaylist.filter((track: any) => {
-        return track.url && track.url.trim() !== '';
-      });
-      const playlist = validPlaylist.length > 0 ? validPlaylist : musicService.getPresetPlaylist();
+      // 不再过滤 URL
+      const playlist = savedPlaylist ? JSON.parse(savedPlaylist) : musicService.getPresetPlaylist();
 
       const currentTrackIndex = savedIndex ? Math.min(parseInt(savedIndex, 10), playlist.length - 1) : 0;
       const volume = savedVolume ? parseFloat(savedVolume) : 0.7;
@@ -124,23 +120,16 @@ export function useMusicPlayer() {
 
     if (playerState.currentTrack) {
       const loadAndPlay = async (track: typeof playerState.currentTrack) => {
-        // 检查是否有有效的播放URL（不为空、不是Stream API）
-        if (!track.url ||
-            track.url.trim() === '' ||
-            track.url.includes('/api/music/stream/')) {
+        // 检查是否有有效的播放URL
+        if (!track.url || track.url.trim() === '') {
           console.warn('[useMusicPlayer] No valid URL for track:', track.title, track.url);
-          // 本地音乐或无效URL，停止播放
+          // 无效URL，停止播放
           setPlayerState(prev => ({ ...prev, isPlaying: false }));
           return;
         }
 
         audio.src = track.url;
-
         audio.volume = playerState.volume;
-
-        if (playerState.isPlaying) {
-          audio.play().catch(console.error);
-        }
       };
 
       loadAndPlay(playerState.currentTrack);
@@ -149,7 +138,20 @@ export function useMusicPlayer() {
     return () => {
       audio.pause();
     };
-  }, [playerState.currentTrack, playerState.isPlaying]);
+  }, [playerState.currentTrack]); // 只在切换歌曲时重新加载
+
+  // 单独处理播放/暂停状态，避免重新加载音轨
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    if (playerState.isPlaying) {
+      audio.play().catch(console.error);
+    } else {
+      audio.pause();
+    }
+  }, [playerState.isPlaying]);
 
   // 单独处理音量变化，避免重新加载音轨
   useEffect(() => {
@@ -262,41 +264,68 @@ export function useMusicPlayer() {
   // }, []);
 
   const loadPlaylist = useCallback(async (tracks: MusicTrack[]) => {
-    // 过滤掉没有有效 URL 的音乐
-    const validTracks = tracks.filter(track => {
-      return track.url && track.url.trim() !== '';
-    });
+    console.log('[useMusicPlayer] loadPlaylist called with', tracks.length, 'tracks');
 
-    if (validTracks.length === 0) {
-      console.warn('[useMusicPlayer] No valid tracks with URLs, skipping playlist load');
+    if (tracks.length === 0) {
+      console.warn('[useMusicPlayer] No tracks provided, skipping playlist load');
       return;
     }
 
+    console.log('[useMusicPlayer] First track to load:', {
+      title: tracks[0].title,
+      url: tracks[0].url,
+      urlType: typeof tracks[0].url
+    });
+
     setPlayerState(prev => ({
       ...prev,
-      playlist: validTracks,
+      playlist: tracks,
       currentTrackIndex: 0,
-      currentTrack: validTracks[0] || null,
+      currentTrack: tracks[0] || null,
       currentTime: 0,
-      isPlaying: true
+      isPlaying: false
     }));
   }, []);
 
   const searchMusic = useCallback(async (query: string) => {
     try {
       const results = await musicService.searchMusic({ query, limit: 999999 });
-      // 过滤掉没有有效 URL 的音乐
-      const validResults = results.filter(track => {
-        return track.url && track.url.trim() !== '';
-      });
 
-      if (validResults.length > 0) {
-        await loadPlaylist(validResults);
-      } else {
-        console.warn('[useMusicPlayer] Search returned no valid tracks with URLs');
+      console.log('[useMusicPlayer] Raw search results count:', results.length);
+      console.log('[useMusicPlayer] Full results:', results);
+
+      if (results.length > 0) {
+        console.log('[useMusicPlayer] First track:', {
+          title: results[0].title,
+          url: results[0].url,
+          urlType: typeof results[0].url,
+          allKeys: Object.keys(results[0])
+        });
+        console.log('[useMusicPlayer] First track full object:', JSON.stringify(results[0], null, 2));
       }
 
-      return validResults;
+      // 按专辑分组并排序
+      const sortedResults = results.sort((a, b) => {
+        // 先按专辑名排序
+        const albumCompare = a.album.localeCompare(b.album, 'zh-CN');
+        if (albumCompare !== 0) return albumCompare;
+
+        // 同一专辑内，按音轨号（如果有）或歌名排序
+        if (a.trackNumber !== undefined && b.trackNumber !== undefined) {
+          return a.trackNumber - b.trackNumber;
+        }
+        return a.title.localeCompare(b.title, 'zh-CN');
+      });
+
+      console.log('[useMusicPlayer] Sorted results by album:', sortedResults.length, 'tracks');
+
+      if (sortedResults.length > 0) {
+        await loadPlaylist(sortedResults);
+      } else {
+        console.warn('[useMusicPlayer] Search returned no tracks');
+      }
+
+      return sortedResults;
     } catch (error) {
       console.error('Search music error:', error);
       return [];
