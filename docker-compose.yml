@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gomoku-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ADMIN_PASSWORD=admin123
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - gomoku-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gomoku-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_BACKEND_URL=http://81.71.139.200:3000
+    restart: unless-stopped
+    networks:
+      - gomoku-network
+
+networks:
+  gomoku-network:
+    driver: bridge
