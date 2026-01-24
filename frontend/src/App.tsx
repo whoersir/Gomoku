@@ -345,7 +345,7 @@ function App() {
             </div>
 
             {/* Right Side Panel - 与棋盘高度对齐 */}
-            <div className="flex-shrink-0" style={{ width: '260px', height: '750px', marginTop: '58px' }}>
+            <div className="flex-shrink-0 flex flex-col" style={{ width: '260px', height: '750px', marginTop: '58px', gap: '16px' }}>
               <RightSidePanel
                 gameState={gameState.gameState}
                 playerName={playerName}

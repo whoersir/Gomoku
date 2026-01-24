@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import { GameState } from '../types';
+import MusicPlayer from './MusicPlayer';
 
 interface RightSidePanelProps {
   gameState: GameState | null;
@@ -44,9 +45,9 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
   };
 
   return (
-    <>
-      {/* Chat Panel - fixed height 750px */}
-      <div className="card-base flex flex-col overflow-hidden" style={{ height: '750px' }}>
+    <div className="flex flex-col gap-4 h-full">
+      {/* Chat Panel - flex-1 to fill available space */}
+      <div className="card-base flex flex-col overflow-hidden flex-1 min-h-0">
         <div className="text-lg font-bold text-dark-text-secondary mb-3 flex items-center gap-2">
           <span>💬</span>聊天
         </div>
@@ -89,6 +90,11 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
           </button>
         </div>
       </div>
-    </>
+      
+      {/* Music Player - flex-shrink-0 to maintain size */}
+      <div className="flex-shrink-0">
+        <MusicPlayer />
+      </div>
+    </div>
   );
 };
