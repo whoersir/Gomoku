@@ -19,12 +19,12 @@ export declare const useSocket: () => {
     watchRoom: (roomId: string, spectatorName: string) => Promise<{
         gameState: GameState;
     } | null>;
-    closeRoom: (roomId: string, adminPassword?: string) => Promise<boolean>;
+    closeRoom: (roomId: string, isAdmin: boolean) => Promise<boolean>;
     restartGame: (roomId: string) => Promise<{
         gameState: GameState;
     } | null>;
     switchToSpectator: (roomId: string, playerName: string) => Promise<{
         gameState: GameState;
     } | null>;
-    emit: (event: string, data?: any) => Promise<any>;
+    emit: (event: string, data?: any, timeout?: number) => Promise<any>;
 };

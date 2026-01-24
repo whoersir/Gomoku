@@ -40,7 +40,7 @@ function App() {
   const socket = useSocket();
   const gameState = useGameState();
 
-  const handleConnect = async (url: string, name: string, adminPassword?: string) => {
+  const handleConnect = async (url: string, name: string) => {
     setLoading(true);
     try {
       await socket.connect(url);
@@ -48,19 +48,14 @@ function App() {
       setServerUrl(url);
       setPlayerName(name);
 
-      // 验证管理员密码
-      const ADMIN_PASSWORD = 'admin123'; // 默认管理员密码
-      if (adminPassword === ADMIN_PASSWORD) {
-        setIsAdmin(true);
-        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'true');
-        console.log('[App] Admin login successful');
-      } else if (adminPassword && adminPassword !== ADMIN_PASSWORD) {
-        alert('管理员密码错误，将以普通用户身份连接');
-        setIsAdmin(false);
-        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
-      } else {
-        setIsAdmin(false);
-        localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
+      // 自动判断管理员身份
+      const ADMIN_ACCOUNTS = ['admin', 'administrator', '王香归'];
+      const isAdminAccount = ADMIN_ACCOUNTS.includes(name.toLowerCase());
+      setIsAdmin(isAdminAccount);
+      localStorage.setItem(STORAGE_KEYS.IS_ADMIN, String(isAdminAccount));
+      
+      if (isAdminAccount) {
+        console.log('[App] Admin login successful for account:', name);
       }
 
       // 保存到 localStorage
@@ -179,9 +174,7 @@ function App() {
     const confirmed = window.confirm(message);
     if (confirmed) {
       console.log(`[App] User confirmed close room, calling socket.closeRoom`);
-      const adminPassword = isAdmin ? 'admin123' : undefined;
-      console.log(`[App] adminPassword to send: ${adminPassword ? '***' : 'undefined'}`);
-      const success = await socket.closeRoom(roomId, adminPassword);
+      const success = await socket.closeRoom(roomId, isAdmin);
       if (!success) {
         console.error(`[App] Close room failed`);
         alert('关闭房间失败');
@@ -359,8 +352,8 @@ function App() {
     gameState.gameState.currentPlayer);
 
   return (
-    <div className="w-full min-h-screen bg-dark-bg flex pr-[300px]">
-      <div className="flex-1">
+    <div className={`w-full min-h-screen bg-dark-bg flex ${page === 'connect' ? '' : 'pr-[300px]'}`}>
+      <div className={`${page === 'connect' ? 'w-full' : 'flex-1'}`}>
       
       {page === 'connect' && (
         <ConnectDialog

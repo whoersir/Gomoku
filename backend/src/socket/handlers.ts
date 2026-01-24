@@ -15,10 +15,8 @@ export class SocketHandlers {
   private readonly RATE_LIMIT_MAX = 100; // 每分钟最大请求数
   private readonly RATE_LIMIT_WINDOW = 60000; // 1分钟窗口
 
-  // 管理员密码从环境变量读取，默认值仅用于开发环境
-  private get ADMIN_PASSWORD(): string {
-    return process.env.ADMIN_PASSWORD || 'admin123';
-  }
+  // 管理员账号列表，这些账号登录后自动成为管理员
+  private readonly ADMIN_ACCOUNTS = ['admin', 'administrator', '王香归'];
 
   constructor(roomManager: RoomManager, historyManager: HistoryManager, playerManager: PlayerManager) {
     this.roomManager = roomManager;
@@ -618,10 +616,10 @@ export class SocketHandlers {
     }
   }
 
-  private handleCloseRoom(socket: Socket, data: { roomId: string; adminPassword?: string }, io: any, callback: any): void {
+  private handleCloseRoom(socket: Socket, data: { roomId: string }, io: any, callback: any): void {
     try {
-      const { roomId, adminPassword } = data;
-      console.log(`[handleCloseRoom] Received closeRoom request - roomId: ${roomId}, adminPassword: ${adminPassword ? '***' : 'undefined'}, socket.id: ${socket.id}`);
+      const { roomId } = data;
+      console.log(`[handleCloseRoom] Received closeRoom request - roomId: ${roomId}, socket.id: ${socket.id}`);
 
       const room = this.roomManager.getRoom(roomId);
       if (!room) {
@@ -633,9 +631,10 @@ export class SocketHandlers {
       // Check if the player is the room owner (black player who created the room) or admin
       const socketPlayerId = socket.id;
       const blackPlayer = room.getRoomInfo().blackPlayer;
-      const isAdmin = adminPassword === this.ADMIN_PASSWORD;
+      const playerName = socket.data.playerName;
+      const isAdmin = playerName && this.ADMIN_ACCOUNTS.includes(playerName.toLowerCase());
 
-      console.log(`[handleCloseRoom] Permission check - socketPlayerId: ${socketPlayerId}, blackPlayer.id: ${blackPlayer?.id}, isAdmin: ${isAdmin}, ADMIN_PASSWORD: ${this.ADMIN_PASSWORD ? '***' : 'undefined'}`);
+      console.log(`[handleCloseRoom] Permission check - socketPlayerId: ${socketPlayerId}, blackPlayer.id: ${blackPlayer?.id}, isAdmin: ${isAdmin}, playerName: ${playerName}`);
 
       // Allow if room owner OR admin
       if (blackPlayer?.id === socketPlayerId || isAdmin) {

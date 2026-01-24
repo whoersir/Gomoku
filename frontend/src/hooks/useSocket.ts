@@ -182,10 +182,10 @@ export const useSocket = () => {
   );
 
   const closeRoom = useCallback(
-    async (roomId: string, adminPassword?: string): Promise<boolean> => {
+    async (roomId: string, isAdmin: boolean): Promise<boolean> => {
       try {
-        console.log(`[useSocket] closeRoom called - roomId: ${roomId}, adminPassword: ${adminPassword ? '***' : 'undefined'}`);
-        const response = await emit('closeRoom', { roomId, adminPassword }, 5000);
+        console.log(`[useSocket] closeRoom called - roomId: ${roomId}, isAdmin: ${isAdmin}`);
+        const response = await emit('closeRoom', { roomId, isAdmin }, 5000);
         console.log(`[useSocket] closeRoom response:`, response);
 
         if (!response) {

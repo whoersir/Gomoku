@@ -1,17 +1,23 @@
+export interface PlayerStats {
+    score: number;
+    totalGames: number;
+    wins: number;
+    losses: number;
+    winRate: number;
+}
+export interface PlayerInfo {
+    id: string;
+    name: string;
+    stats?: PlayerStats;
+}
 export interface GameState {
     roomId: string;
     roomName: string;
     board: number[][];
     currentPlayer: 1 | 2;
     players: {
-        black: {
-            id: string;
-            name: string;
-        };
-        white: {
-            id: string;
-            name: string;
-        };
+        black: PlayerInfo;
+        white: PlayerInfo;
     };
     spectators: {
         id: string;

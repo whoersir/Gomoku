@@ -1,6 +1,6 @@
 import React from 'react';
 interface ConnectDialogProps {
-    onConnect: (serverUrl: string, playerName: string, adminPassword?: string, playerId?: string) => void;
+    onConnect: (serverUrl: string, playerName: string, playerId?: string) => void;
     loading: boolean;
     error: string | null;
 }

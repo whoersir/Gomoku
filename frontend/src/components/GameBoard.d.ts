@@ -5,6 +5,7 @@ interface GameBoardProps {
     playerColor: 1 | 2 | null;
     isCurrentPlayer: boolean;
     onMove: (x: number, y: number) => void;
+    onGameFinished: () => void;
 }
 export declare const GameBoard: React.FC<GameBoardProps>;
 export {};

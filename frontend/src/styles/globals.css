@@ -195,62 +195,67 @@ html, body, #root {
     box-shadow: 0 0 8px rgba(7, 58, 181, 0.6);
   }
 
-  /* 登录页面特殊样式 */
+  /* 完全按照参考样式 - 登录页面 */
   .login-page {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    width: 100vw;
     background: linear-gradient(to bottom, #f1f4f9, #dff1ff);
     position: relative;
     overflow: hidden;
   }
 
-  .login-color {
+  /* 背景色彩光晕 */
+  .color {
     position: absolute;
-    filter: blur(150px);
+    filter: blur(250px);
   }
 
-  .login-color:nth-child(1) {
-    top: -350px;
-    width: 600px;
-    height: 600px;
+  .color:nth-child(1) {
+    top: -500px;
+    width: 1000px;
+    height: 1000px;
     background: #ff359b;
   }
 
-  .login-color:nth-child(2) {
-    bottom: -150px;
-    left: 100px;
-    width: 500px;
-    height: 500px;
+  .color:nth-child(2) {
+    bottom: -300px;
+    left: -100px;
+    width: 900px;
+    height: 900px;
     background: #fffd87;
   }
 
-  .login-color:nth-child(3) {
-    bottom: 50px;
-    right: 100px;
-    width: 500px;
-    height: 500px;
+  .color:nth-child(3) {
+    bottom: -200px;
+    right: -100px;
+    width: 900px;
+    height: 900px;
     background: #00d2ff;
   }
 
+  /* 登录框容器 */
   .login-box {
     position: relative;
   }
 
-  .login-square {
+  /* 浮动方块 */
+  .square {
     position: absolute;
     backdrop-filter: blur(5px);
-    box-shadow: 0 25px 45px rgb(0, 0, 0, 0.1);
-    border: 1px solid rgb(255, 255, 255, 0.5);
-    border-right: 1px solid rgb(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgb(255, 255, 255, 0.2);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     animation: animate 10s linear infinite;
     animation-delay: calc(-1s * var(--i));
   }
 
+  /* 动画 */
   @keyframes animate {
     0%, 100% {
       transform: translateY(-40px);
@@ -260,14 +265,14 @@ html, body, #root {
     }
   }
 
-  .login-square:nth-child(1) {
+  .square:nth-child(1) {
     top: -50px;
     right: -60px;
     width: 100px;
     height: 100px;
   }
 
-  .login-square:nth-child(2) {
+  .square:nth-child(2) {
     top: 150px;
     left: -100px;
     width: 120px;
@@ -275,7 +280,7 @@ html, body, #root {
     z-index: 2;
   }
 
-  .login-square:nth-child(3) {
+  .square:nth-child(3) {
     bottom: 50px;
     right: -60px;
     width: 80px;
@@ -283,14 +288,14 @@ html, body, #root {
     z-index: 2;
   }
 
-  .login-square:nth-child(4) {
+  .square:nth-child(4) {
     bottom: -80px;
     left: 100px;
     width: 50px;
     height: 50px;
   }
 
-  .login-square:nth-child(5) {
+  .square:nth-child(5) {
     top: -90px;
     left: 140px;
     width: 60px;
@@ -307,10 +312,10 @@ html, body, #root {
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(5px);
-    box-shadow: 0 25px 45px rgb(0, 0, 0, 0.1);
-    border: 1px solid rgb(255, 255, 255, 0.5);
-    border-right: 1px solid rgb(255, 255, 255, 0.2);
-    border-bottom: 1px solid rgb(255, 255, 255, 0.2);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .login-form {
@@ -339,12 +344,14 @@ html, body, #root {
     background: #fff;
   }
 
-  .login-form .inputBox {
+  /* 输入框样式 */
+  .inputBox {
     width: 100%;
     margin-top: 20px;
+    position: relative;
   }
 
-  .login-form .inputBox input {
+  .inputBox input {
     width: 100%;
     background: rgba(255, 255, 255, 0.2);
     border: none;
@@ -357,53 +364,561 @@ html, body, #root {
     font-size: 16px;
     letter-spacing: 1px;
     color: #fff;
-    box-shadow: 0 5px 15px rgb(0, 0, 0, 0.05);
-    transition: all 0.3s;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   }
 
-  .login-form .inputBox input:focus {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.8);
-  }
-
-  .login-form .inputBox input::placeholder {
+  .inputBox input::placeholder {
     color: #fff;
   }
 
-  .login-form .inputBox input[type="submit"] {
+  .inputBox input[type="submit"],
+  .inputBox button {
     background: #fff;
     color: #666;
     max-width: 100px;
     cursor: pointer;
     margin-bottom: 20px;
     font-weight: 600;
-    transition: all 0.3s;
+    border: none;
+    outline: none;
+    padding: 10px 20px;
+    border-radius: 35px;
+    font-size: 16px;
+    letter-spacing: 1px;
   }
 
-  .login-form .inputBox input[type="submit"]:hover {
-    background: #f0f0f0;
-    transform: translateY(-2px);
+  .login-forget {
+    margin-top: 15px;
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
   }
 
-  .login-form .inputBox input[type="submit"]:disabled {
+  .login-forget a {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .login-forget a:hover {
+    text-decoration: underline;
+  }
+
+  /* 登录注册切换标签 */
+  .auth-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+
+  .tab-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+
+  .tab-btn.active {
+    background: #fff;
+    color: #666;
+    font-weight: 600;
+  }
+
+  /* 错误消息样式 */
+  .error-message {
+    color: #ff6b6b;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+    background: rgba(255, 107, 107, 0.1);
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  /* 昵称检查样式 */
+  .name-check {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+  }
+
+  .name-check.available {
+    color: #4caf50;
+  }
+
+  .name-check.taken {
+    color: #ff6b6b;
+  }
+
+  .name-error {
+    color: #ff6b6b;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+  }
+
+  .name-hint {
+    color: #fff;
+    font-size: 12px;
+    margin-top: 5px;
+    text-align: center;
+  }
+
+  /* 保存玩家信息样式 */
+  .saved-player-info {
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  .welcome-message {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .player-stats {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+  }
+
+  .quick-login-btn {
+    width: 100% !important;
+    max-width: none !important;
+    margin-bottom: 10px !important;
+  }
+
+  .logout-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* 管理员切换按钮 */
+  .admin-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+  }
+
+  .login-form .inputBox {
+    width: 100%;
+    margin-top: 20px;
+    position: relative;
+  }
+
+  .login-form .inputBox input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    outline: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    font-weight: 400;
+  }
+
+  .login-form .inputBox input:focus {
+    border-color: #f5576c;
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .login-form .inputBox input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 300;
+  }
+
+  .login-form .inputBox button {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    outline: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #f5576c;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  .login-form .inputBox button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .login-form .inputBox button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
   }
 
   .login-forget {
-    margin-top: 5px;
+    margin-top: 20px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    text-align: center;
+    font-weight: 400;
+  }
+
+  .quick-login-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    outline: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #f5576c;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-top: 0;
+  }
+
+  .quick-login-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .quick-login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .logout-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 10px;
+    width: 100%;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+
+  .logout-btn:hover {
+    opacity: 1;
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+
+  .tab-btn.active {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  .tab-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .name-check {
+    position: absolute;
+    right: 60px;
+    top: calc(50% + 80px);
+    transform: translateY(-50%);
     color: #fff;
+  }
+
+  .name-check.available {
+    color: #4ade80;
+  }
+
+  .name-check.taken {
+    color: #f87171;
+  }
+
+  .name-error {
+    color: #f87171;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+
+  .name-hint {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    margin-top: 5px;
+  }
+
+  .admin-toggle {
+    margin-top: 10px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 0;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .admin-toggle:hover {
+    opacity: 1;
+  }
+
+  .error-message {
+    padding: 10px 15px;
+    background: rgba(248, 113, 113, 0.2);
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    border-radius: 10px;
+    color: #f87171;
+    font-size: 13px;
+    margin-top: 15px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    border: none;
+    outline: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #f5576c;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-top: 0;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* 新增组件样式 */
+  .saved-player-info {
+    margin-bottom: 15px;
+  }
+
+  .welcome-message {
+    color: #fff;
+    margin-bottom: 10px;
     font-size: 14px;
   }
 
-  .login-forget a {
-    color: #fff;
-    font-weight: 600;
-    margin-left: 5px;
+  .player-stats {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    margin-bottom: 10px;
   }
 
-  .login-forget a:hover {
-    text-decoration: underline;
+  .quick-login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    outline: none;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    margin-top: 0;
+  }
+
+  .quick-login-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .quick-login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .logout-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    margin-top: 10px;
+    width: 100%;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .logout-btn:hover {
+    opacity: 1;
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+
+  .tab-btn.active {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  .tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .name-check {
+    position: absolute;
+    right: 60px;
+    top: calc(50% + 80px);
+    transform: translateY(-50%);
+    color: #fff;
+  }
+
+  .name-check.available {
+    color: #4ade80;
+  }
+
+  .name-check.taken {
+    color: #f87171;
+  }
+
+  .name-error {
+    color: #f87171;
+    font-size: 12px;
+    margin-top: 5px;
+  }
+
+  .name-hint {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    margin-top: 5px;
+  }
+
+  .admin-toggle {
+    margin-top: 10px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 0;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .admin-toggle:hover {
+    opacity: 1;
+  }
+
+  .error-message {
+    padding: 10px 15px;
+    background: rgba(248, 113, 113, 0.2);
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    border-radius: 10px;
+    color: #f87171;
+    font-size: 13px;
+    margin-top: 15px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    outline: none;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    margin-top: 0;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* 快速进入按钮下移50px */
+  .saved-player-info + .inputBox:first-of-type {
+    margin-top: 50px;
+    margin-bottom: 5px;
+  }
+
+  /* 缩小按钮间距 */
+  .saved-player-info + .inputBox + .inputBox {
+    margin-top: 0;
   }
 }
