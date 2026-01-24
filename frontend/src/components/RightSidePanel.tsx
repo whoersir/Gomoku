@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import { GameState } from '../types';
-import MusicPlayer from './MusicPlayer';
 
 interface RightSidePanelProps {
   gameState: GameState | null;
@@ -89,11 +88,6 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
             发送
           </button>
         </div>
-      </div>
-      
-      {/* Music Player - flex-shrink-0 to maintain size */}
-      <div className="flex-shrink-0">
-        <MusicPlayer />
       </div>
     </div>
   );
