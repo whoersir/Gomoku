@@ -216,5 +216,6 @@ export const useSocket = () => {
         closeRoom,
         restartGame,
         switchToSpectator,
+        emit,
     };
 };

@@ -102,9 +102,19 @@ function App() {
     }
   };
 
-  const handleBackToRoomList = () => {
+  const handleBackToRoomList = async () => {
+    // 先通知服务器离开房间
+    await socket.emit('leaveRoom', {});
+    
     gameState.leaveRoom();
     setPage('roomList');
+    
+    // 立即刷新房间列表，确保UI更新
+    setTimeout(async () => {
+      const rooms = await socket.getRoomList();
+      console.log('[App] Room list refreshed after leaving:', rooms);
+      gameState.updateRooms(rooms);
+    }, 100);
   };
 
   const handleDisconnect = () => {

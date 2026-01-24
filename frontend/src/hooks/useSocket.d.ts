@@ -26,4 +26,5 @@ export declare const useSocket: () => {
     switchToSpectator: (roomId: string, playerName: string) => Promise<{
         gameState: GameState;
     } | null>;
+    emit: (event: string, data?: any) => Promise<any>;
 };

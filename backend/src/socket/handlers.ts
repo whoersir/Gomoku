@@ -181,6 +181,10 @@ export class SocketHandlers {
       this.handleSwitchToSpectator(socket, data, io, callback);
     });
 
+    socket.on('leaveRoom', (_data, callback) => {
+      this.handleLeaveRoom(socket, io, callback);
+    });
+
     socket.on('disconnect', () => {
       this.handleDisconnect(socket, io);
     });
@@ -760,6 +764,80 @@ export class SocketHandlers {
     callback({ success: true, gameState });
   }
 
+  private handleLeaveRoom(socket: Socket, io: any, callback: any): void {
+    const roomId = socket.data.roomId;
+    const isSpectator = socket.data.isSpectator;
+
+    if (roomId) {
+      const room = this.roomManager.getRoom(roomId);
+      if (room) {
+        if (isSpectator) {
+          // 观战者离开
+          room.removeSpectator(socket.id);
+          this.spectatorNames.delete(socket.id);
+          io.to(roomId).emit('roomInfo', room.getRoomInfo());
+        } else {
+          // 玩家离开
+          const playerName = socket.data.playerName;
+          const playerColor = socket.data.playerColor;
+          
+          room.removePlayer(socket.id);
+
+          // 检查房间状态
+          if (room.getPlayerCount() === 1) {
+            room.restartGame();
+            const gameState = room.getGameState();
+            if (gameState) {
+              io.to(roomId).emit('gameStateUpdate', gameState);
+            }
+          }
+
+          // 如果所有玩家都退出，关闭房间
+          if (room.getPlayerCount() === 0) {
+            console.log(`[Socket] No players left in room ${roomId}, closing room`);
+            io.to(roomId).emit('roomClosed', {
+              roomId,
+              reason: 'All players have left the room',
+            });
+            this.roomManager.removeRoom(roomId);
+          } else {
+            // 发送玩家离开事件
+            io.to(roomId).emit('playerLeft', {
+              playerId: socket.id,
+              playerName,
+              playerColor,
+            });
+            
+            const roomInfo = room.getRoomInfo();
+            io.to(roomId).emit('roomInfo', roomInfo);
+            
+            const gameState = room.getGameState();
+            if (gameState) {
+              io.to(roomId).emit('gameStateUpdate', gameState);
+            }
+          }
+          
+          this.playerNames.delete(socket.id);
+        }
+      }
+    }
+
+    // 清除socket的房间数据
+    socket.data.roomId = null;
+    socket.data.playerName = null;
+    socket.data.playerColor = null;
+    socket.data.isSpectator = null;
+
+    console.log(`[Socket] Player left room: ${socket.id}`);
+    
+    if (callback) {
+      callback({ success: true });
+    }
+    
+    // 广播房间列表更新
+    io.emit('roomListUpdate', this.roomManager.getRoomList());
+  }
+
   private handleDisconnect(socket: Socket, io: any): void {
     const roomId = socket.data.roomId;
     const isSpectator = socket.data.isSpectator;
@@ -861,6 +939,12 @@ export class SocketHandlers {
         }
       }
     }
+
+    // 清除socket的房间数据，防止后续请求时还显示旧房间信息
+    socket.data.roomId = null;
+    socket.data.playerName = null;
+    socket.data.playerColor = null;
+    socket.data.isSpectator = null;
 
     console.log(`[Socket] Player disconnected: ${socket.id}`);
   }
