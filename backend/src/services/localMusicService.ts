@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
+import os from 'os';
 
 interface LocalMusicTrack {
   id: string;
@@ -12,7 +13,30 @@ interface LocalMusicTrack {
   cover?: string;
 }
 
-const MUSIC_DIR = 'F:\\Music';
+// 获取音乐目录 - 优先级: 环境变量 > F:\Music > 用户主目录下的 Music
+const getMusicDir = (): string => {
+  const envDir = process.env.MUSIC_DIR;
+  if (envDir && fs.existsSync(envDir)) {
+    return envDir;
+  }
+  
+  // Windows 默认路径
+  const windowsPath = 'F:\\Music';
+  if (fs.existsSync(windowsPath)) {
+    return windowsPath;
+  }
+  
+  // 用户主目录下的 Music 文件夹
+  const userMusicDir = path.join(os.homedir(), 'Music');
+  if (fs.existsSync(userMusicDir)) {
+    return userMusicDir;
+  }
+  
+  // 如果都不存在，返回默认值（会在运行时检查）
+  return windowsPath;
+};
+
+const MUSIC_DIR = getMusicDir();
 const SUPPORTED_FORMATS = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg'];
 const MUSIC_CACHE_TIME = 60 * 60 * 1000; // 1小时缓存
 
@@ -35,51 +59,62 @@ class LocalMusicService {
 
       // 递归扫描函数
       const recursiveScan = async (dir: string, artistName?: string) => {
-        const files = fs.readdirSync(dir);
+        try {
+          const files = fs.readdirSync(dir);
 
-        for (const file of files) {
-          const filePath = path.join(dir, file);
-          const stats = fs.statSync(filePath);
+          for (const file of files) {
+            try {
+              const filePath = path.join(dir, file);
+              const stats = fs.statSync(filePath);
 
-          // 如果是目录，递归扫描（使用目录名作为艺术家名）
-          if (stats.isDirectory()) {
-            await recursiveScan(filePath, file);
-            continue;
+              // 如果是目录，递归扫描（使用目录名作为艺术家名）
+              if (stats.isDirectory()) {
+                await recursiveScan(filePath, file);
+                continue;
+              }
+
+              // 检查文件格式
+              const ext = path.extname(file).toLowerCase();
+              if (!SUPPORTED_FORMATS.includes(ext)) continue;
+
+              try {
+                // 提取元数据
+                const metadata = await parseFile(filePath);
+                
+                const track: LocalMusicTrack = {
+                  id: `local_${Date.now()}_${Math.random()}`,
+                  title: metadata.common?.title || path.basename(file, ext),
+                  artist: metadata.common?.artist || artistName || 'Unknown Artist',
+                  album: metadata.common?.album || 'Local Music',
+                  duration: Math.floor((metadata.format?.duration || 0) * 1000),
+                  url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
+                  cover: 'https://picsum.photos/200/200'
+                };
+
+                tracks.push(track);
+                console.log(`[LocalMusic] Scanned: ${track.title} by ${track.artist}`);
+              } catch (err) {
+                console.warn(`[LocalMusic] Failed to parse metadata for ${file}:`, err);
+                // 即使元数据提取失败，仍然添加基本信息
+                const track: LocalMusicTrack = {
+                  id: `local_${Date.now()}_${Math.random()}`,
+                  title: path.basename(file, ext),
+                  artist: artistName || 'Unknown Artist',
+                  album: 'Local Music',
+                  duration: 0,
+                  url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
+                };
+                tracks.push(track);
+              }
+            } catch (fileErr) {
+              console.warn(`[LocalMusic] Error processing file ${file}:`, fileErr);
+              // 继续处理下一个文件
+              continue;
+            }
           }
-
-          // 检查文件格式
-          const ext = path.extname(file).toLowerCase();
-          if (!SUPPORTED_FORMATS.includes(ext)) continue;
-
-          try {
-            // 提取元数据
-            const metadata = await parseFile(filePath);
-            
-            const track: LocalMusicTrack = {
-              id: `local_${Date.now()}_${Math.random()}`,
-              title: metadata.common?.title || path.basename(file, ext),
-              artist: metadata.common?.artist || artistName || 'Unknown Artist',
-              album: metadata.common?.album || 'Local Music',
-              duration: Math.floor((metadata.format?.duration || 0) * 1000),
-              url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
-              cover: 'https://picsum.photos/200/200'
-            };
-
-            tracks.push(track);
-            console.log(`[LocalMusic] Scanned: ${track.title} by ${track.artist}`);
-          } catch (err) {
-            console.warn(`[LocalMusic] Failed to parse metadata for ${file}:`, err);
-            // 即使元数据提取失败，仍然添加基本信息
-            const track: LocalMusicTrack = {
-              id: `local_${Date.now()}_${Math.random()}`,
-              title: path.basename(file, ext),
-              artist: artistName || 'Unknown Artist',
-              album: 'Local Music',
-              duration: 0,
-              url: `/api/music/stream/${Buffer.from(filePath).toString('base64')}`,
-            };
-            tracks.push(track);
-          }
+        } catch (dirErr) {
+          console.warn(`[LocalMusic] Error reading directory ${dir}:`, dirErr);
+          // 继续处理其他目录
         }
       };
 

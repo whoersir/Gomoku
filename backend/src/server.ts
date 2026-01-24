@@ -300,10 +300,12 @@ app.get('/api/music/local', async (req, res) => {
 
   try {
     const results = await localMusicService.searchMusic(keyword, parseInt(limit.toString()) || 10);
-    res.json(results);
+    // 确保返回数组
+    res.json(Array.isArray(results) ? results : []);
   } catch (error) {
     console.error('[API] Local music search error:', error);
-    res.status(500).json({ error: 'Failed to search local music' });
+    // 返回空数组而不是错误，避免前端 JSON 解析失败
+    res.json([]);
   }
 });
 
