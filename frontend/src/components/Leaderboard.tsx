@@ -34,7 +34,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
     setError(null);
     try {
       // 添加缓存破坏参数以确保获取最新数据
-      const response = await fetch(`http://localhost:3000/api/leaderboard?limit=10&timestamp=${Date.now()}`);
+      const response = await fetch(`http://10.75.31.37:3000/api/leaderboard?limit=10&timestamp=${Date.now()}`);
       if (response.ok) {
         const data = await response.json();
         setLeaderboard(data);

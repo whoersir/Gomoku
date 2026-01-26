@@ -24,6 +24,10 @@ export class Room {
     return this.roomId;
   }
 
+  getRoomName(): string {
+    return this.roomName;
+  }
+
   addPlayer(playerId: string, playerName: string, socket: any, preferredColor?: 'black' | 'white'): { success: boolean; color?: 1 | 2; message?: string } {
     if (this.playerSockets.size >= this.maxPlayers) {
       return { success: false, message: 'Room is full' };
@@ -246,7 +250,10 @@ export class Room {
   }
 
   isEmpty(): boolean {
-    return this.playerSockets.size === 0;
+    // 房间没有玩家，且创建时间超过5分钟才算需要清理的空房间
+    const roomAge = Date.now() - this.createdAt;
+    const isOldEnough = roomAge > 5 * 60 * 1000; // 5分钟
+    return this.playerSockets.size === 0 && isOldEnough;
   }
 
   getStatus(): 'waiting' | 'playing' | 'finished' {

@@ -32,11 +32,9 @@ export class RoomManager {
   }
 
   cleanupEmptyRooms(): void {
-    for (const [roomId, room] of this.rooms.entries()) {
-      if (room.isEmpty()) {
-        this.rooms.delete(roomId);
-      }
-    }
+    // 禁用房间清理功能
+    // 房间不会被清理，除非手动删除
+    return;
   }
 
   getRoomCount(): number {

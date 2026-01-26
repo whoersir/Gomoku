@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 > nul
-echo 🎮 五子棋局域网对战游戏 - 启动脚本
+echo 🎮 独属于自己的娱乐小屋 - 启动脚本
 echo ======================================
 
 REM Check if backend dependencies are installed

@@ -1090,6 +1090,8 @@ html, body, #root {
     transition: transform 0.3s ease;
     position: relative;
     overflow: hidden;
+    z-index: 20;
+    pointer-events: auto;
   }
 
   .profile-avatar:hover {
@@ -1144,11 +1146,85 @@ html, body, #root {
     pointer-events: none;
   }
 
+  .change-avatar-button {
+    position: absolute;
+    top: -70px;
+    right: -95px;
+    width: 77.33px;
+    height: 18.33px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  }
+
+  .change-avatar-button:hover {
+    transform: translateY(-2px);
+    color: #764ba2;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+  }
+
+  .change-avatar-button:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .change-nickname-button {
+    position: absolute;
+    top: -70px;
+    right: 155px;
+    width: 77.33px;
+    height: 18.33px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  }
+
+  .change-nickname-button:hover {
+    transform: translateY(-2px);
+    color: #764ba2;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+  }
+
+  .change-nickname-button:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.25);
+  }
+
   .profile-stats {
     display: flex;
     justify-content: space-between;
     padding: 10px 15px;
-    margin-top: -60px;
+    margin-top: -65px;
     margin-left: -125px;
     margin-bottom: 20px;
     background: rgba(255, 255, 255, 0.5);

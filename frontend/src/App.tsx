@@ -424,7 +424,7 @@ function App() {
         <div className="min-h-screen py-6 relative" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', paddingRight: '420px' }}>
           <div className="mb-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold">
-              {gameState.gameState.roomName || '五子棋'} - 房间 #{gameState.gameState.roomId}
+              五子棋 - 天王山之战
             </h1>
             <div className="flex gap-2 items-center">
               {!gameState.isSpectator && (
@@ -441,7 +441,7 @@ function App() {
                 onClick={handleBackToRoomList}
                 className="btn-secondary text-sm"
               >
-                返回房间列表
+                返回主页
               </button>
             </div>
           </div>

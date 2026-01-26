@@ -51,23 +51,18 @@ class LocalMusicService {
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log('[LocalMusic] Already initialized, skipping...');
       return;
     }
 
-    console.log('[LocalMusic] Initializing local music library...');
-    console.log('[LocalMusic] Music directory:', MUSIC_DIR);
-
     try {
+      process.stdout.write('[LocalMusic] loading (0)...\r');
       const startTime = Date.now();
       const allMusic = await this.getMusicList();
       const loadTime = Date.now() - startTime;
-
-      console.log(`[LocalMusic] ✓ Preloaded ${allMusic.length} music files in ${loadTime}ms`);
+      process.stdout.write(`[LocalMusic] loading (${allMusic.length})....done\n`);
       this.initialized = true;
     } catch (error) {
-      console.error('[LocalMusic] ✗ Failed to initialize:', error);
-      // 不抛出错误，允许服务器继续启动
+      process.stdout.write(`[LocalMusic] error\n`);
     }
   }
 
@@ -80,7 +75,6 @@ class LocalMusicService {
     try {
       // 检查目录是否存在
       if (!fs.existsSync(MUSIC_DIR)) {
-        console.warn(`[LocalMusic] Music directory not found: ${MUSIC_DIR}`);
         return [];
       }
 
@@ -116,8 +110,8 @@ class LocalMusicService {
                     const base64Image = Buffer.from(picture.data).toString('base64');
                     coverUrl = `data:${picture.format};base64,${base64Image}`;
                   } catch (imgErr) {
-                    console.warn(`[LocalMusic] Failed to extract cover for ${file}:`, imgErr);
-                  }
+                  // 封面提取失败，使用默认封面
+                }
                 }
 
                 const encodedPath = encodeURIComponent(filePath);
@@ -133,12 +127,11 @@ class LocalMusicService {
                   cover: coverUrl
                 };
 
-                console.log(`[LocalMusic] Scanned: ${track.title} by ${track.artist}`);
-                console.log(`[LocalMusic] filePath: ${filePath}`);
-                console.log(`[LocalMusic] streamUrl: ${streamUrl}`);
+                if (tracks.length % 20 === 0) {
+                  process.stdout.write(`[LocalMusic] loading (${tracks.length})...\r`);
+                }
                 tracks.push(track);
               } catch (err) {
-                console.warn(`[LocalMusic] Failed to parse metadata for ${file}:`, err);
                 // 即使元数据提取失败，仍然添加基本信息
                 const track: LocalMusicTrack = {
                   id: `local_${Date.now()}_${Math.random()}`,
@@ -151,22 +144,18 @@ class LocalMusicService {
                 tracks.push(track);
               }
             } catch (fileErr) {
-              console.warn(`[LocalMusic] Error processing file ${file}:`, fileErr);
               // 继续处理下一个文件
               continue;
             }
           }
         } catch (dirErr) {
-          console.warn(`[LocalMusic] Error reading directory ${dir}:`, dirErr);
           // 继续处理其他目录
         }
       };
 
       await recursiveScan(MUSIC_DIR);
-      console.log(`[LocalMusic] Scanned ${tracks.length} music files`);
       return tracks;
     } catch (error) {
-      console.error('[LocalMusic] Error scanning directory:', error);
       return [];
     }
   }
@@ -210,7 +199,6 @@ class LocalMusicService {
 
       return results.slice(0, limit);
     } catch (error) {
-      console.error('[LocalMusic] Search error:', error);
       return [];
     }
   }

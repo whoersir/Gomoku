@@ -8,6 +8,7 @@ interface RoomListProps {
   onJoinRoom: (roomId: string, playerName: string, preferredColor?: 'black' | 'white') => void;
   onWatchRoom: (roomId: string, spectatorName: string) => void;
   onCloseRoom: (roomId: string) => void;
+  onUpdateNickname: (newNickname: string) => void;
   loading: boolean;
   error?: string | null;
   playerName: string;
@@ -128,6 +129,13 @@ export const RoomListNew: React.FC<RoomListProps> = ({
     setShowDetails(true);
   };
 
+  const handleNicknameClick = () => {
+    const newNickname = prompt('请输入新的昵称:', playerName);
+    if (newNickname && newNickname.trim() !== '' && newNickname.trim() !== playerName) {
+      onUpdateNickname(newNickname.trim());
+    }
+  };
+
   const handleMouseLeave = () => {
     setShowDetails(false);
   };
@@ -228,6 +236,22 @@ export const RoomListNew: React.FC<RoomListProps> = ({
 
               {/* 详细信息（悬停显示） */}
               <div className={`profile-details ${showDetails ? 'show' : 'hide'}`}>
+                <button
+                  className="change-avatar-button"
+                  onClick={handleAvatarClick}
+                  title="更改头像"
+                >
+                  更改头像
+                </button>
+
+                <button
+                  className="change-nickname-button"
+                  onClick={handleNicknameClick}
+                  title="修改昵称"
+                >
+                  修改昵称
+                </button>
+
                 <div className="profile-stats">
                   <div className="profile-stat">
                     <div className="profile-stat-value">{playerInfo.score}</div>
@@ -282,7 +306,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
           <div className="card-hover">
             <div className="card-hover-content">
               <div className="card-rules">
-                <h4>五子棋对战规则</h4>
+                <h4>对战规则</h4>
                 <ul>
                   <li>黑方先行，轮流落子</li>
                   <li>率先连成五子者获胜</li>
@@ -314,6 +338,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
             </div>
           </div>
         </div>
+
 
         {/* Piece Selection Modal */}
         {showPieceSelection && (

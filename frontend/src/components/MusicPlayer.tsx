@@ -330,7 +330,7 @@ const MusicPlayer: React.FC = () => {
       {/* Playlist section visible in the sidebar */}
       <div className="music-player-playlist">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <h4 style={{ margin: 0, fontSize: '12px', color: 'rgba(255, 255, 255, 0.9)' }}>播放列表 ({playerState.playlist.length})</h4>
+          <h4 style={{ margin: 0, fontSize: '12px', color: 'rgba(0, 0, 0, 0.9)' }}>播放列表 ({playerState.playlist.length})</h4>
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             <button
               onClick={togglePlayMode}

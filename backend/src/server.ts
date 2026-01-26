@@ -310,8 +310,6 @@ app.get('/api/music/stream', async (req, res) => {
       const stream = fs.createReadStream(decodedPath);
       stream.pipe(res);
     }
-
-    console.log(`[LocalMusic] Streaming file: ${decodedPath}`);
   } catch (error) {
     console.error('[API] Music stream error:', error);
     if (!res.headersSent) {

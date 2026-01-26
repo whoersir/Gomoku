@@ -1,4 +1,4 @@
-# 五子棋局域网对战平台
+# 独属于自己的娱乐小屋
 
 <div align="center">
 
@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-stable-success)
 
-**一个功能完整的五子棋局域网对战平台，支持实时对战、观战、聊天等功能**
+**一个功能完整的娱乐小屋，支持实时对战、观战、聊天等功能**
 
 [在线演示](#) · [功能特性](#-功能特性) · [快速开始](#-快速开始) · [文档](#-文档)
 
@@ -42,7 +42,7 @@ npm install @whoersir/gomoku-client
 
 ## 📋 项目简介
 
-五子棋局域网对战平台是一个基于 WebSocket 的实时在线对弈系统，支持多玩家同时在线、房间创建、观战模式、实时聊天等功能。项目采用前后端分离架构，后端使用 Node.js + Socket.IO，前端使用 React + TypeScript + Tailwind CSS 构建。
+独属于自己的娱乐小屋是一个基于 WebSocket 的实时在线对弈系统，支持多玩家同时在线、房间创建、观战模式、实时聊天等功能。项目采用前后端分离架构，后端使用 Node.js + Socket.IO，前端使用 React + TypeScript + Tailwind CSS 构建。
 
 ### ✨ 核心特性
 
@@ -383,7 +383,7 @@ Gomoku/
 
 <div align="center">
 
-**感谢使用五子棋局域网对战平台！**
+**感谢使用独属于自己的娱乐小屋！**
 
 Made with ❤️ by whoersir
 
