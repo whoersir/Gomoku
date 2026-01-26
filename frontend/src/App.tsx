@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { ConnectDialog } from './components/ConnectDialog';
-import { RoomList } from './components/RoomList';
 import { GameBoard } from './components/GameBoard';
 import { VictoryModal } from './components/VictoryModal';
-import { Leaderboard } from './components/Leaderboard';
-import { PlayerHistory } from './components/PlayerHistory';
+// import { Leaderboard } from './components/Leaderboard'; // 不再在房间列表页面显示
+// import { PlayerHistory } from './components/PlayerHistory'; // 不再在房间列表页面显示
 import { LeftSidePanel } from './components/LeftSidePanel';
 import { SpectatorPanel } from './components/SpectatorPanel';
 import { RightSidePanel } from './components/RightSidePanel';
 import MusicPlayer from './components/MusicPlayer';
 import { useSocket } from './hooks/useSocket';
 import { useGameState } from './hooks/useGameState';
+import { RoomListNew } from './components/RoomListNew';
 // import { on, off } from './services/socketService';
 
 type PageState = 'connect' | 'roomList' | 'game';
@@ -69,30 +69,33 @@ function App() {
     }
   };
 
-  const handleCreateRoom = async (playerName: string, roomName: string) => {
-    console.log(`[App] Creating room "${roomName}" with player: ${playerName}`);
-    setLoading(true);
-    setPlayerName(playerName);
-    const result = await socket.createRoom(roomName, playerName);
-    setLoading(false);
-    if (result) {
-      console.log(`[App] Successfully created room: ${result.roomId}`);
-      // Auto-join the created room
-      await handleJoinRoom(result.roomId, playerName);
-    } else {
-      console.error(`[App] Failed to create room`);
-    }
-  };
-
-  const handleJoinRoom = async (roomId: string, name: string) => {
+  const handleJoinRoom = async (roomId: string, name: string, preferredColor?: 'black' | 'white') => {
     setLoading(true);
     setPlayerName(name);
-    const result = await socket.joinRoom(roomId, name);
+    const result = await socket.joinRoom(roomId, name, preferredColor);
     setLoading(false);
     if (result) {
       gameState.joinedRoom(result.color, result.gameState);
       // 保存房间状态到 localStorage
       localStorage.setItem(STORAGE_KEYS.ROOM_ID, roomId);
+      localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, String(result.color));
+      localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'false');
+      localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
+      setPage('game');
+    } else {
+      alert(socket.error || '房间不存在，请检查房间ID或创建新房间。');
+    }
+  };
+
+  const handleCreateRoom = async (roomName: string, name: string) => {
+    setLoading(true);
+    setPlayerName(name);
+    const result = await socket.createRoom(roomName, name);
+    setLoading(false);
+    if (result) {
+      gameState.joinedRoom(result.color, null);
+      // 保存房间状态到 localStorage
+      localStorage.setItem(STORAGE_KEYS.ROOM_ID, result.roomId);
       localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, String(result.color));
       localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'false');
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
@@ -225,7 +228,7 @@ function App() {
     }
   };
 
-  // Load room list periodically and listen to updates
+  // Load room list when page changes to roomList
   useEffect(() => {
     if (page === 'roomList' && socket.connected) {
       const loadRooms = async () => {
@@ -234,13 +237,8 @@ function App() {
         gameState.updateRooms(rooms);
       };
 
-      // Initial load
+      // Load once
       loadRooms();
-
-      // Reload every 3 seconds for updates (从1.5秒增加到3秒，减少请求频率)
-      const interval = setInterval(loadRooms, 3000);
-
-      return () => clearInterval(interval);
     }
   }, [page, socket.connected, socket.getRoomList, gameState.updateRooms]); // 添加 connected 依赖
 
@@ -352,7 +350,7 @@ function App() {
     gameState.gameState.currentPlayer);
 
   return (
-    <div className={`w-full min-h-screen bg-dark-bg flex ${page === 'connect' ? '' : 'pr-[300px]'}`}>
+    <div className={`w-full min-h-screen bg-dark-bg flex`}>
       <div className={`${page === 'connect' ? 'w-full' : 'flex-1'}`}>
       
       {page === 'connect' && (
@@ -364,60 +362,66 @@ function App() {
       )}
 
       {page === 'roomList' && (
-        <div className="min-h-screen py-8 px-4" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
-          <div className="mb-4 flex justify-between items-center">
-            <h1 className="text-3xl font-bold">五子棋 - 房间列表</h1>
-            <div className="flex gap-2">
-              <button
-                onClick={handleDisconnect}
-                className="btn-secondary text-sm"
-              >
-                断开连接
-              </button>
-            </div>
-          </div>
-          
-          {/* Three column layout: Leaderboard | RoomList | PlayerHistory */}
-          <div className="flex gap-6 max-w-7xl mx-auto">
-            {/* Left: Leaderboard */}
-            <div className="w-80 flex-shrink-0">
-              <Leaderboard isOpen={true} onClose={() => {}} embedded={true} />
-            </div>
-            
-            {/* Center: Room List */}
-            <div className="flex-1">
-              <RoomList
-                rooms={gameState.rooms}
-                onCreateRoom={handleCreateRoom}
-                onJoinRoom={handleJoinRoom}
-                onWatchRoom={handleWatchRoom}
-                onCloseRoom={handleCloseRoom}
-                loading={loading}
-                error={socket.error}
-                playerName={playerName}
-                playerSocketId={socket.socketId}
-                isAdmin={isAdmin}
-              />
-            </div>
+        <div className="roomlist-page">
+          {/* 背景色彩光晕 - 与登录页面相同 */}
+          <div className="color"></div>
+          <div className="color"></div>
+          <div className="color"></div>
 
-            {/* Right: Player History */}
-            <div className="w-80 flex-shrink-0">
-              <PlayerHistory
-                playerName={playerName}
-                isOpen={true}
-                onClose={() => {}}
-                serverUrl={serverUrl}
-                embedded={true}
-              />
-            </div>
+          {/* 断开连接按钮 */}
+          <div style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '30px',
+            zIndex: 100,
+          }}>
+            <button
+              onClick={handleDisconnect}
+              style={{
+                padding: '8px 20px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                borderRadius: '20px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: 'all 0.3s',
+                transform: 'translateY(0px)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              断开连接
+            </button>
           </div>
+
+          {/* 新的房间列表 - 使用玻璃卡片样式 */}
+          <RoomListNew
+            rooms={gameState.rooms}
+            onCreateRoom={handleCreateRoom}
+            onJoinRoom={handleJoinRoom}
+            onWatchRoom={handleWatchRoom}
+            onCloseRoom={handleCloseRoom}
+            loading={loading}
+            error={socket.error}
+            playerName={playerName}
+            playerSocketId={socket.socketId}
+            isAdmin={isAdmin}
+            playerInfo={localStorage.getItem('gomoku_player') ? JSON.parse(localStorage.getItem('gomoku_player')!) : undefined}
+          />
         </div>
       )}
 
 
 
       {page === 'game' && gameState.gameState && (
-        <div className="min-h-screen py-6 px-4 relative" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+        <div className="min-h-screen py-6 relative" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', paddingRight: '420px' }}>
           <div className="mb-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold">
               {gameState.gameState.roomName || '五子棋'} - 房间 #{gameState.gameState.roomId}
@@ -500,20 +504,10 @@ function App() {
           onClose={() => setVictoryModalVisible(false)}
         />
       )}
-      
-      {/* Music Player - Right Side (hidden on login page) */}
-      {page !== 'connect' && (
-        <div 
-          className={page === 'roomList' ? 'music-player-sidebar-room-list' : 'music-player-sidebar-game-room'}
-          style={{ 
-            position: 'fixed', 
-            right: 0, 
-            top: '20px', 
-            height: 'calc(100vh - 40px)', 
-            width: '300px', 
-            zIndex: 50 
-          }}
-        >
+
+      {/* Music Player - Only show on game page (using fixed positioning) */}
+      {page === 'game' && (
+        <div className="music-player-sidebar-game-room">
           <MusicPlayer />
         </div>
       )}

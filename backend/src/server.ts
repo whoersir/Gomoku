@@ -67,6 +67,9 @@ const socketHandlers = new SocketHandlers(roomManager, historyManager, playerMan
 // Initialize history
 historyManager.initialize().catch(err => console.error('Failed to initialize history:', err));
 
+// Initialize local music service (preload all music at startup)
+localMusicService.initialize().catch(err => console.error('Failed to initialize local music service:', err));
+
 // REST API routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
@@ -340,14 +343,55 @@ app.get('/api/music/local', async (req, res) => {
   }
 });
 
+// 刷新音乐缓存
+app.post('/api/music/refresh', async (req, res) => {
+  try {
+    console.log('[API] Refreshing music cache...');
+    localMusicService.refreshCache();
+    const results = await localMusicService.searchMusic('', 999999);
+    console.log(`[API] Music cache refreshed, loaded ${results.length} tracks`);
+    res.json({
+      success: true,
+      count: results.length,
+      message: `已刷新音乐库，共 ${results.length} 首歌曲`
+    });
+  } catch (error) {
+    console.error('[API] Refresh music cache error:', error);
+    res.status(500).json({
+      success: false,
+      error: '刷新音乐库失败'
+    });
+  }
+});
+
+// 获取音乐库状态
+app.get('/api/music/status', (req, res) => {
+  try {
+    const status = localMusicService.getStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('[API] Get music status error:', error);
+    res.status(500).json({
+      success: false,
+      error: '获取音乐库状态失败'
+    });
+  }
+});
+
 // Socket.io events
 io.on('connection', socket => {
   socketHandlers.handleConnection(socket, io);
 });
 
-// Periodic cleanup
+// Periodic cleanup - ensure at least one room exists
 setInterval(() => {
   roomManager.cleanupEmptyRooms();
+  
+  // 如果清理后没有房间，创建一个默认房间
+  if (roomManager.getRoomCount() === 0) {
+    const { roomId } = roomManager.createRoom('默认五子棋房间');
+    console.log(`[Server] 清理后重新创建默认房间: ${roomId} (默认五子棋房间)`);
+  }
 }, 30000);
 
 // Start server
@@ -355,6 +399,12 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] Gomoku server running on port ${PORT}`);
   console.log(`[Server] Listening on all network interfaces (0.0.0.0)`);
+  
+  // 如果没有房间，创建一个默认房间
+  if (roomManager.getRoomCount() === 0) {
+    const { roomId } = roomManager.createRoom('默认五子棋房间');
+    console.log(`[Server] 创建默认房间: ${roomId} (默认五子棋房间)`);
+  }
 });
 
 export { app, io, roomManager, historyManager, playerManager };

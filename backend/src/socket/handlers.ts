@@ -222,7 +222,7 @@ export class SocketHandlers {
     const { roomId, room } = this.roomManager.createRoom(roomName);
     console.log(`[Socket] Created room: ${roomId} with name: ${roomName}`);
 
-    const result = room.addPlayer(socket.id, playerName, socket);
+    const result = room.addPlayer(socket.id, playerName, socket, undefined);
     if (result.success) {
       this.playerNames.set(socket.id, playerName);
       socket.join(roomId);
@@ -245,7 +245,7 @@ export class SocketHandlers {
     }
   }
 
-  private async handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string }, io: any, callback: any): Promise<void> {
+  private async handleJoinRoom(socket: Socket, data: { roomId: string; playerName: string; preferredColor?: 'black' | 'white' }, io: any, callback: any): Promise<void> {
     // 速率限制检查
     if (!this.checkRateLimit(socket.id)) {
       callback({ success: false, message: 'Rate limit exceeded. Please wait a moment.' });
@@ -255,6 +255,7 @@ export class SocketHandlers {
     // 输入验证和清理
     const roomId = data.roomId;
     const playerName = this.sanitizeInput(data.playerName, 20);
+    const preferredColor = data.preferredColor;
 
     if (!playerName || playerName.length < 1) {
       callback({ success: false, message: 'Invalid player name' });
@@ -276,7 +277,7 @@ export class SocketHandlers {
       console.error('[Socket] Failed to sync player to Supabase:', err);
     });
 
-    const result = room.addPlayer(socket.id, playerName, socket);
+    const result = room.addPlayer(socket.id, playerName, socket, preferredColor);
     if (result.success) {
       this.playerNames.set(socket.id, playerName);
       socket.join(roomId);

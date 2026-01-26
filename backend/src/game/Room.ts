@@ -24,7 +24,7 @@ export class Room {
     return this.roomId;
   }
 
-  addPlayer(playerId: string, playerName: string, socket: any): { success: boolean; color?: 1 | 2; message?: string } {
+  addPlayer(playerId: string, playerName: string, socket: any, preferredColor?: 'black' | 'white'): { success: boolean; color?: 1 | 2; message?: string } {
     if (this.playerSockets.size >= this.maxPlayers) {
       return { success: false, message: 'Room is full' };
     }
@@ -53,20 +53,36 @@ export class Room {
 
     this.playerSockets.set(playerId, socket);
 
-    console.log(`[Room.addPlayer] Player ${playerName} (${playerId}) joining room ${this.roomId}`);
+    console.log(`[Room.addPlayer] Player ${playerName} (${playerId}) joining room ${this.roomId}, preferred color: ${preferredColor || 'none'}`);
     console.log(`[Room.addPlayer] Current players - black: ${!!this.blackPlayer}, white: ${!!this.whitePlayer}`);
     console.log(`[Room.addPlayer] Player sockets count: ${this.playerSockets.size}`);
 
+    // 根据偏好分配颜色，如果偏好颜色不可用则分配另一个颜色
+    if (preferredColor === 'black' && !this.blackPlayer) {
+      this.blackPlayer = { id: playerId, name: playerName };
+      console.log(`[Room.addPlayer] Assigned as black player (preferred)`);
+      if (this.whitePlayer) {
+        this.startGame();
+      }
+      return { success: true, color: 1 };
+    } else if (preferredColor === 'white' && !this.whitePlayer) {
+      this.whitePlayer = { id: playerId, name: playerName };
+      console.log(`[Room.addPlayer] Assigned as white player (preferred), starting game`);
+      this.startGame();
+      return { success: true, color: 2 };
+    }
+
+    // 偏好颜色不可用或未指定，分配可用的颜色
     if (!this.blackPlayer) {
       this.blackPlayer = { id: playerId, name: playerName };
-      console.log(`[Room.addPlayer] Assigned as black player`);
+      console.log(`[Room.addPlayer] Assigned as black player (default)`);
       if (this.whitePlayer) {
         this.startGame();
       }
       return { success: true, color: 1 };
     } else if (!this.whitePlayer) {
       this.whitePlayer = { id: playerId, name: playerName };
-      console.log(`[Room.addPlayer] Assigned as white player, starting game`);
+      console.log(`[Room.addPlayer] Assigned as white player (default), starting game`);
       this.startGame();
       return { success: true, color: 2 };
     }

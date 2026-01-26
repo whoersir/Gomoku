@@ -65,6 +65,19 @@ export function useMusicPlayer() {
 
   const handleEnded = () => {
     const { playMode, currentTrackIndex, playlist } = playerState;
+    
+    // 增加当前歌曲的播放次数
+    const currentTrack = playerState.currentTrack;
+    if (currentTrack) {
+      try {
+        const savedPlayCounts = localStorage.getItem('music_player_play_counts');
+        const playCounts = savedPlayCounts ? JSON.parse(savedPlayCounts) : {};
+        playCounts[currentTrack.id] = (playCounts[currentTrack.id] || 0) + 1;
+        localStorage.setItem('music_player_play_counts', JSON.stringify(playCounts));
+      } catch (error) {
+        console.error('Failed to update play count:', error);
+      }
+    }
 
     // 根据播放模式处理歌曲结束
     if (playMode === 'single') {

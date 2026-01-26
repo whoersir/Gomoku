@@ -11,7 +11,7 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   move: (data: { roomId: string; x: number; y: number }) => void;
   chat: (data: { roomId: string; message: string }) => void;
-  joinRoom: (data: { roomId: string; playerName: string }) => void;
+  joinRoom: (data: { roomId: string; playerName: string; preferredColor?: 'black' | 'white' }) => void;
   createRoom: (data: { playerName: string }) => void;
   getRoomList: () => void;
   getHistory: (data: { limit?: number; offset?: number }) => void;

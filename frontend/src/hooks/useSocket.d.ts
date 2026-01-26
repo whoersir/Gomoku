@@ -9,7 +9,7 @@ export declare const useSocket: () => {
         roomId: string;
         color: 1 | 2;
     } | null>;
-    joinRoom: (roomId: string, playerName: string) => Promise<{
+    joinRoom: (roomId: string, playerName: string, preferredColor?: 'black' | 'white') => Promise<{
         color: 1 | 2;
         gameState: GameState;
     } | null>;

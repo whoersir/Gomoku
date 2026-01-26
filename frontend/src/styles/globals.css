@@ -207,6 +207,18 @@ html, body, #root {
     overflow: hidden;
   }
 
+  /* 房间列表页面 - 与登录页面相同背景 */
+  .roomlist-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    background: linear-gradient(to bottom, #f1f4f9, #dff1ff);
+    position: relative;
+    overflow: hidden;
+  }
+
   /* 背景色彩光晕 */
   .color {
     position: absolute;
@@ -297,9 +309,14 @@ html, body, #root {
 
   .square:nth-child(5) {
     top: -90px;
-    left: 140px;
-    width: 60px;
-    height: 60px;
+    left: 180px;
+    width: 90px;
+    height: 90px;
+  }
+
+  /* 登录框容器 */
+  .login-box {
+    position: relative;
   }
 
   .login-container {
@@ -921,4 +938,515 @@ html, body, #root {
   .saved-player-info + .inputBox + .inputBox {
     margin-top: 0;
   }
+
+  /* 房间列表页面新样式 - 玻璃卡片效果 */
+  .roomlist-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    background: linear-gradient(to bottom, #f1f4f9, #dff1ff);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    z-index: 1;
+    padding: 40px 20px;
+  }
+
+  .glass-card {
+    position: relative;
+    width: 280px;
+    height: 400px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 30px;
+    border-radius: 15px;
+    box-shadow: 20px 20px 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    border-left: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    transition: transform 0.5s;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 25px 25px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .glass-card-content {
+    padding: 20px;
+    text-align: center;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: 0.5s;
+  }
+
+  .glass-card:hover .glass-card-content {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .glass-card-number {
+    position: absolute;
+    top: -80px;
+    right: 25px;
+    font-size: 128px;
+    color: rgba(255, 255, 255, 0.05);
+    font-weight: 800;
+  }
+
+  .glass-card-title {
+    font-size: 28px;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .glass-card-description {
+    font-size: 16px;
+    color: #666;
+    font-weight: 300;
+    margin: 10px 0 15px 0;
+    line-height: 1.6;
+  }
+
+  .glass-card-button {
+    position: relative;
+    display: inline-block;
+    padding: 10px 24px;
+    margin-top: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: rgba(0, 0, 0, 0.85);
+    text-shadow: 0 2px 6px rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: 500;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .glass-card-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  /* 个人资料卡片 */
+  .profile-card {
+    width: 380px;
+    height: 400px;
+    padding: 30px;
+  }
+
+  /* 个人资料卡片的 glass-card-content 始终显示 */
+  .profile-card .glass-card-content {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
+    position: relative;
+  }
+
+  /* 基本信息（常驻显示） */
+  .profile-basic-info {
+    text-align: center;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.4s ease;
+  }
+
+  /* 悬停时基本信息变模糊 */
+  .profile-card:hover .profile-basic-info {
+    filter: blur(8px);
+    opacity: 0.3;
+  }
+
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: white;
+    margin: 0 auto 15px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .profile-avatar:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  .profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-name {
+    font-size: 24px;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+
+  .profile-role {
+    font-size: 14px;
+    color: #667eea;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  /* 详细信息区域（悬停显示） */
+  .profile-details {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 25px 30px;
+    border-radius: 15px;
+    transition: all 0.4s ease;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .profile-details.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .profile-details.hide {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+  }
+
+  .profile-stats {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    margin-top: -60px;
+    margin-left: -125px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    box-sizing: border-box;
+    width: 331.07px;
+    height: 81.33px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .profile-stat {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .profile-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .profile-stat-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 常听音乐 */
+  .profile-favorite-music {
+    flex: none;
+    overflow: hidden;
+    width: 331.07px;
+    min-height: 370px;
+    height: auto;
+    box-sizing: border-box;
+    margin: 0;
+    margin-left: -125px;
+  }
+
+  .favorite-music-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #667eea;
+    text-align: center;
+  }
+
+  .favorite-music-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(48px, auto);
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+  }
+
+  .favorite-music-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    min-height: 36px;
+  }
+
+  .favorite-music-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateX(5px);
+  }
+
+  .music-index {
+    font-size: 16px;
+    font-weight: 700;
+    color: #667eea;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .music-info {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .music-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+
+  .music-artist {
+    font-size: 12px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 播放次数样式 */
+  .music-play-count {
+    font-size: 12px;
+    color: #666;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 40px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* 五子棋对战房间卡片 */
+  .gomoku-room-card {
+    width: 380px;
+  }
+
+  /* 音乐播放器卡片 */
+  .music-player-card {
+    width: 380px;
+    height: 400px;
+  }
+
+  .room-status-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+
+  .room-status-waiting {
+    background-color: rgba(76, 175, 80, 0.9);
+    color: white;
+  }
+
+  .room-status-playing {
+    background-color: rgba(255, 193, 7, 0.9);
+    color: white;
+  }
+
+  .room-players-info {
+    text-align: left;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .room-player-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .room-player-slot.filled {
+    background: rgba(102, 126, 234, 0.1);
+  }
+
+  /* 五子棋卡片默认层 */
+  .card-default {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+    transition: filter 0.5s;
+  }
+
+  .card-default-title {
+    font-size: 48px;
+    font-weight: 800;
+    color: rgba(237, 160, 213, 0.85);
+    text-shadow: 0 2px 6px rgba(255, 255, 255, 0.5);
+    padding: 10px 30px;
+    margin-bottom: 15px;
+  }
+
+  .card-default-subtitle {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(237, 160, 213, 0.7);
+    text-shadow: 0 2px 6px rgba(255, 255, 255, 0.5);
+    padding: 8px 20px;
+  }
+
+  /* 五子棋卡片悬停层 */
+  .card-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 0.5s;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    text-align: center;
+  }
+
+  .glass-card:hover .card-default {
+    filter: blur(5px);
+  }
+
+  .glass-card:hover .card-hover {
+    opacity: 1;
+  }
+
+  /* 规则样式 */
+  .card-rules {
+    margin-bottom: 30px;
+  }
+
+  .card-rules h4 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 15px;
+    font-weight: 600;
+  }
+
+  .card-rules ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .card-rules li {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 8px;
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .card-rules li:before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #333;
+  }
+
+  /* 按钮容器 */
+  .card-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .card-actions .glass-card-button {
+    flex: 1;
+    max-width: 230px;
+    white-space: nowrap;
+    font-size: 14px;
+    padding: 8px 20px;
+  }
 }
+

@@ -83,9 +83,9 @@ export const useSocket = () => {
   );
 
   const joinRoom = useCallback(
-    async (roomId: string, playerName: string): Promise<{ color: 1 | 2; gameState: GameState } | null> => {
+    async (roomId: string, playerName: string, preferredColor?: 'black' | 'white'): Promise<{ color: 1 | 2; gameState: GameState } | null> => {
       try {
-        const response = await emit('joinRoom', { roomId, playerName });
+        const response = await emit('joinRoom', { roomId, playerName, preferredColor });
         if (response.success) {
           return { color: response.color, gameState: response.gameState };
         } else {

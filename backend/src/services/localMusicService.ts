@@ -39,11 +39,37 @@ const getMusicDir = (): string => {
 
 const MUSIC_DIR = getMusicDir();
 const SUPPORTED_FORMATS = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg'];
-const MUSIC_CACHE_TIME = 0; // 禁用缓存，强制每次重新扫描
+const MUSIC_CACHE_TIME = 60 * 60 * 1000; // 1小时缓存
 
 class LocalMusicService {
   private musicCache: LocalMusicTrack[] = [];
   private lastCacheTime: number = 0;
+  private initialized: boolean = false;
+
+  /**
+   * 初始化：在服务器启动时预加载所有音乐
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      console.log('[LocalMusic] Already initialized, skipping...');
+      return;
+    }
+
+    console.log('[LocalMusic] Initializing local music library...');
+    console.log('[LocalMusic] Music directory:', MUSIC_DIR);
+
+    try {
+      const startTime = Date.now();
+      const allMusic = await this.getMusicList();
+      const loadTime = Date.now() - startTime;
+
+      console.log(`[LocalMusic] ✓ Preloaded ${allMusic.length} music files in ${loadTime}ms`);
+      this.initialized = true;
+    } catch (error) {
+      console.error('[LocalMusic] ✗ Failed to initialize:', error);
+      // 不抛出错误，允许服务器继续启动
+    }
+  }
 
   /**
    * 递归扫描本地音乐目录（支持子目录按音乐人分类）
@@ -195,6 +221,20 @@ class LocalMusicService {
   refreshCache() {
     this.musicCache = [];
     this.lastCacheTime = 0;
+    this.initialized = false;
+  }
+
+  /**
+   * 获取音乐库状态
+   */
+  getStatus() {
+    return {
+      initialized: this.initialized,
+      musicDir: MUSIC_DIR,
+      cacheSize: this.musicCache.length,
+      lastCacheTime: this.lastCacheTime,
+      cacheExpired: this.musicCache.length > 0 && (Date.now() - this.lastCacheTime) > MUSIC_CACHE_TIME
+    };
   }
 }
 
