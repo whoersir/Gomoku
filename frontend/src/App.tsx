@@ -11,6 +11,7 @@ import MusicPlayer from './components/MusicPlayer';
 import { useSocket } from './hooks/useSocket';
 import { useGameState } from './hooks/useGameState';
 import { RoomListNew } from './components/RoomListNew';
+import { getBackendUrl } from './services/apiConfig';
 // import { on, off } from './services/socketService';
 
 type PageState = 'connect' | 'roomList' | 'game';
@@ -33,7 +34,16 @@ function App() {
   });
   const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '');
-  const [serverUrl, setServerUrl] = useState(() => localStorage.getItem(STORAGE_KEYS.SERVER_URL) || '');
+  const [serverUrl, setServerUrl] = useState(() => {
+    const savedUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL);
+    // 如果保存的是内网地址，自动替换为动态地址
+    if (savedUrl && (savedUrl.includes('10.75.31.37') || savedUrl.includes('localhost'))) {
+      console.log('[App] Detected old local URL, using dynamic backend URL');
+      localStorage.removeItem(STORAGE_KEYS.SERVER_URL);
+      return '';
+    }
+    return savedUrl || '';
+  });
   const [victoryModalVisible, setVictoryModalVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true');
 
@@ -117,6 +127,11 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
     }
+  };
+
+  const handleUpdateNickname = (newNickname: string) => {
+    setPlayerName(newNickname);
+    localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, newNickname);
   };
 
   const handleMove = async (x: number, y: number) => {
@@ -253,11 +268,12 @@ function App() {
   useEffect(() => {
     const restoreConnection = async () => {
       // 如果有保存的连接信息和页面状态，尝试恢复连接
-      if (serverUrl && playerName && (page === 'roomList' || page === 'game')) {
-        console.log('[App] Restoring connection from localStorage...');
+      const urlToConnect = serverUrl || getBackendUrl();
+      if (playerName && (page === 'roomList' || page === 'game')) {
+        console.log('[App] Restoring connection from localStorage...', urlToConnect);
         try {
           setLoading(true);
-          await socket.connect(serverUrl);
+          await socket.connect(urlToConnect);
           setLoading(false);
 
           // 如果之前在游戏页面，尝试重新加入房间
@@ -408,6 +424,7 @@ function App() {
             onJoinRoom={handleJoinRoom}
             onWatchRoom={handleWatchRoom}
             onCloseRoom={handleCloseRoom}
+            onUpdateNickname={handleUpdateNickname}
             loading={loading}
             error={socket.error}
             playerName={playerName}

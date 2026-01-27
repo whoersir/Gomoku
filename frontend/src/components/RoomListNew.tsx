@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Room } from '../types';
 import MusicPlayer from './MusicPlayer';
+import { getBackendUrl } from '../services/apiConfig';
 
 interface RoomListProps {
   rooms: Room[];
@@ -29,6 +30,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
   onJoinRoom,
   onWatchRoom,
   onCloseRoom,
+  onUpdateNickname,
   loading,
   error,
   playerName,
@@ -147,32 +149,61 @@ export const RoomListNew: React.FC<RoomListProps> = ({
       setCustomAvatar(savedAvatar);
     }
 
-    // 获取常听音乐（从localStorage中获取播放列表和播放次数）
-    try {
-      const savedPlaylist = localStorage.getItem('music_player_playlist');
-      const savedPlayCounts = localStorage.getItem('music_player_play_counts');
-      
-      if (savedPlaylist) {
-        const playlist = JSON.parse(savedPlaylist);
-        const playCounts = savedPlayCounts ? JSON.parse(savedPlayCounts) : {};
-        
-        // 为每首音乐添加播放次数（默认为0）
-        const musicWithPlayCounts = playlist.map((music: any) => ({
-          ...music,
-          playCount: playCounts[music.id] || 0
-        }));
-        
-        // 过滤出播放次数≥1的歌曲，按播放次数降序排序，取前10首
-        const top10 = musicWithPlayCounts
-          .filter((music: any) => music.playCount >= 1)
-          .sort((a: any, b: any) => b.playCount - a.playCount)
-          .slice(0, 10);
-        
-        setFavoriteMusic(top10);
+    // 从后端API获取音乐列表并获取播放次数
+    const loadFavoriteMusic = async () => {
+      try {
+        // 获取后端URL
+        const backendUrl = getBackendUrl();
+
+        // 从后端获取音乐列表
+        const response = await fetch(`${backendUrl}/api/music/local?keyword=&limit=999`);
+        const playlist = await response.json();
+
+        if (Array.isArray(playlist)) {
+          // 获取播放次数
+          const savedPlayCounts = localStorage.getItem('music_player_play_counts');
+          const playCounts = savedPlayCounts ? JSON.parse(savedPlayCounts) : {};
+
+          // 为每首音乐添加播放次数（默认为0）
+          const musicWithPlayCounts = playlist.map((music: any) => ({
+            ...music,
+            playCount: playCounts[music.id] || 0
+          }));
+
+          // 过滤出播放次数≥1的歌曲，按播放次数降序排序，取前10首
+          const top10 = musicWithPlayCounts
+            .filter((music: any) => music.playCount >= 1)
+            .sort((a: any, b: any) => b.playCount - a.playCount)
+            .slice(0, 10);
+
+          setFavoriteMusic(top10);
+        }
+      } catch (e) {
+        console.error('Failed to load favorite music:', e);
       }
-    } catch (e) {
-      console.error('Failed to load favorite music:', e);
-    }
+    };
+
+    // 初始加载
+    loadFavoriteMusic();
+
+    // 监听localStorage变化
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'music_player_play_counts') {
+        loadFavoriteMusic();
+      }
+    };
+
+    // 定期刷新播放次数（每5秒）
+    const intervalId = setInterval(() => {
+      loadFavoriteMusic();
+    }, 5000);
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const displayAvatar = customAvatar || '👤';
@@ -373,7 +404,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
               <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '30px' }}>
                 {/* 黑棋按钮 */}
                 {(() => {
-                  const isOccupied = selectedRoom && selectedRoom.blackPlayer;
+                  const isOccupied = !!(selectedRoom && selectedRoom.blackPlayer);
                   const occupiedByName = selectedRoom?.blackPlayer?.name || '';
                   const isDisabled = !isNewRoom && isOccupied;
                   return (
@@ -418,7 +449,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                 
                 {/* 白棋按钮 */}
                 {(() => {
-                  const isOccupied = selectedRoom && selectedRoom.whitePlayer;
+                  const isOccupied = !!(selectedRoom && selectedRoom.whitePlayer);
                   const occupiedByName = selectedRoom?.whitePlayer?.name || '';
                   const isDisabled = !isNewRoom && isOccupied;
                   return (

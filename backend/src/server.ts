@@ -11,6 +11,9 @@ import { SocketHandlers } from './socket/handlers';
 import { supabaseService } from './services/supabaseService';
 import { localMusicService } from './services/localMusicService';
 
+// 用于避免重复打印音乐库加载日志
+let musicListLogged = false;
+
 // 获取音乐目录（与localMusicService中相同）
 const getMusicDir = (): string => {
   const envDir = process.env.MUSIC_DIR;
@@ -327,15 +330,21 @@ app.get('/api/music/local', async (req, res) => {
     const searchKeyword = keyword && typeof keyword === 'string' ? keyword : '';
     const results = await localMusicService.searchMusic(searchKeyword, parseInt(limit.toString()) || 999999);
 
-    console.log('[API] /api/music/local returning', results.length, 'tracks');
-    if (results.length > 0) {
-      console.log('[API] First track URL:', results[0].url);
+    // 优化日志输出，只在搜索时有关键词时才详细打印
+    if (searchKeyword) {
+      console.log(`[API] 🔍 搜索音乐: "${searchKeyword}" - 找到 ${results.length} 首歌曲`);
+    } else {
+      // 空关键词只在第一次或音乐列表变化时打印（用静默标志控制）
+      if (!musicListLogged) {
+        console.log(`[API] 📚 加载音乐库: ${results.length} 首歌曲`);
+        musicListLogged = true;
+      }
     }
 
     // 确保返回数组
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {
-    console.error('[API] Local music search error:', error);
+    console.error('[API] ❌ 音乐搜索错误:', error);
     // 返回空数组而不是错误，避免前端 JSON 解析失败
     res.json([]);
   }
@@ -344,17 +353,21 @@ app.get('/api/music/local', async (req, res) => {
 // 刷新音乐缓存
 app.post('/api/music/refresh', async (req, res) => {
   try {
-    console.log('[API] Refreshing music cache...');
+    console.log('[API] 🔄 刷新音乐缓存...');
     localMusicService.refreshCache();
     const results = await localMusicService.searchMusic('', 999999);
-    console.log(`[API] Music cache refreshed, loaded ${results.length} tracks`);
+    console.log(`[API] ✅ 音乐库已刷新: ${results.length} 首歌曲`);
+
+    // 重置日志标志，允许下次加载时打印
+    musicListLogged = false;
+
     res.json({
       success: true,
       count: results.length,
       message: `已刷新音乐库，共 ${results.length} 首歌曲`
     });
   } catch (error) {
-    console.error('[API] Refresh music cache error:', error);
+    console.error('[API] ❌ 刷新音乐库失败:', error);
     res.status(500).json({
       success: false,
       error: '刷新音乐库失败'

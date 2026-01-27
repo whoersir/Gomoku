@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBackendUrl } from '../services/apiConfig';
 
 interface PlayerInfo {
   id: string;
@@ -16,7 +17,7 @@ interface ConnectDialogProps {
   error: string | null;
 }
 
-const SERVER_URL = 'http://10.75.31.37:3000';
+const SERVER_URL = getBackendUrl();
 
 export const ConnectDialog: React.FC<ConnectDialogProps> = ({
   onConnect,
