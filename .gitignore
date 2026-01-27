@@ -30,3 +30,7 @@ temp_*
 
 # CodeBuddy 项目数据
 .codebuddy/
+
+# 编译生成的 JavaScript 文件
+frontend/src/**/*.js
+backend/src/**/*.js
