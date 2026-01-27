@@ -52,9 +52,7 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
         </div>
         <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
           {messages.length === 0 ? (
-            <div className="text-center text-dark-text-tertiary text-sm py-8">
-              暂无消息
-            </div>
+            <div className="text-center text-dark-text-tertiary text-sm py-8">暂无消息</div>
           ) : (
             messages.map((msg, index) => (
               <div key={index} className="text-sm">

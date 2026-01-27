@@ -11,14 +11,15 @@ interface AllSongsViewProps {
 type SortBy = 'title' | 'artist' | 'album' | 'duration';
 
 export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
-  const { playTrack, musicList, currentTrack, formatTime, refreshMusicList, isLoading } = useMusicPlayer();
+  const { playTrack, musicList, currentTrack, formatTime, refreshMusicList, isLoading } =
+    useMusicPlayer();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('title');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredAndSorted = useMemo(() => {
-    let result = searchTracks(tracks, searchQuery);
+    const result = searchTracks(tracks, searchQuery);
 
     // 排序
     result.sort((a, b) => {
@@ -40,7 +41,7 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
   }, [tracks, searchQuery, sortBy]);
 
   const handlePlayTrack = (track: MusicTrack) => {
-    const index = musicList.findIndex(t => t.id === track.id);
+    const index = musicList.findIndex((t) => t.id === track.id);
     if (index !== -1) {
       playTrack(index);
     }
@@ -109,7 +110,12 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
           ) : (
             <>
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               刷新
             </>
@@ -120,7 +126,11 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
       {/* 刷新提示 */}
       {isRefreshing && (
         <div className="mb-3 px-4 py-3 bg-blue-500/20 border border-blue-500/30 rounded-lg flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-400 animate-spin" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-5 h-5 text-blue-400 animate-spin"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M4.2 12.2A4 4 0 0 1 4 12 4 4 0 0 1 4.2 12.2z" />
           </svg>
           <span className="text-sm text-blue-400">音乐库更新中，请等待......</span>
@@ -131,8 +141,18 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
       {filteredAndSorted.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-12 h-12 text-gray-600 mx-auto mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-gray-400">未找到匹配的歌曲</p>
           </div>
@@ -152,9 +172,11 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
                 }`}
               >
                 {/* 播放状态指示 */}
-                <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
-                  isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
-                }`}>
+                <div
+                  className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
+                    isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
+                  }`}
+                >
                   {isPlaying ? (
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
@@ -176,7 +198,9 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
 
                 {/* 歌曲信息 */}
                 <div className="flex-1 min-w-0 text-left">
-                  <p className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}>
+                  <p
+                    className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}
+                  >
                     {track.title}
                   </p>
                   <p className="text-xs text-gray-400 truncate">{track.artist}</p>

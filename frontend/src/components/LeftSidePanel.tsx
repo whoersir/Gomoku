@@ -19,8 +19,8 @@ const getRankInfo = (score: number): { name: string; color: string; icon: string
 };
 
 // 玩家信息卡片组件
-const PlayerCard: React.FC<{ 
-  player: PlayerInfo | undefined; 
+const PlayerCard: React.FC<{
+  player: PlayerInfo | undefined;
   isWaiting: boolean;
   isCurrentTurn: boolean;
   isBlack: boolean;
@@ -40,27 +40,32 @@ const PlayerCard: React.FC<{
     >
       {/* 头部：棋子图标 + 名称 */}
       <div className="flex items-center gap-3 mb-2">
-        <div className={`w-8 h-8 rounded-full shadow-lg flex items-center justify-center ${
-          isBlack ? 'bg-black' : 'bg-white border-2 border-dark-text-tertiary'
-        }`}>
+        <div
+          className={`w-8 h-8 rounded-full shadow-lg flex items-center justify-center ${
+            isBlack ? 'bg-black' : 'bg-white border-2 border-dark-text-tertiary'
+          }`}
+        >
           {hasStats && rankInfo && <span className="text-xs">{rankInfo.icon}</span>}
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg">{isBlack ? '黑棋' : '白棋'}</span>
-            {isYou && <span className="text-xs text-primary bg-primary/20 px-2 py-0.5 rounded">(你)</span>}
+            {isYou && (
+              <span className="text-xs text-primary bg-primary/20 px-2 py-0.5 rounded">(你)</span>
+            )}
           </div>
         </div>
       </div>
 
       {/* 玩家名称 */}
       <div className="text-base text-dark-text-secondary font-medium mb-2">
-        {isBlack 
-          ? (player?.name || '等待玩家')
-          : (player?.name && player.name !== 'Waiting...'
-              ? player.name
-              : (isWaiting ? '⏳ 等待加入...' : '未加入'))
-        }
+        {isBlack
+          ? player?.name || '等待玩家'
+          : player?.name && player.name !== 'Waiting...'
+            ? player.name
+            : isWaiting
+              ? '⏳ 等待加入...'
+              : '未加入'}
       </div>
 
       {/* 段位和积分 */}
@@ -70,9 +75,7 @@ const PlayerCard: React.FC<{
             {rankInfo.icon} {rankInfo.name}
           </span>
           <span className="text-xs text-dark-text-tertiary">|</span>
-          <span className="text-sm text-yellow-400 font-bold">
-            🏆 {stats!.score} 分
-          </span>
+          <span className="text-sm text-yellow-400 font-bold">🏆 {stats!.score} 分</span>
         </div>
       )}
 
@@ -93,7 +96,9 @@ const PlayerCard: React.FC<{
           </div>
           <div className="bg-dark-bg-tertiary rounded p-1.5 text-center">
             <div className="text-dark-text-tertiary">胜率</div>
-            <div className={`font-bold ${stats!.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+            <div
+              className={`font-bold ${stats!.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}
+            >
               {stats!.winRate}%
             </div>
           </div>
@@ -139,7 +144,7 @@ export const LeftSidePanel: React.FC<LeftSidePanelProps> = ({
   return (
     <div className="flex flex-col h-full gap-3 justify-center">
       {/* Black Player */}
-      <PlayerCard 
+      <PlayerCard
         player={blackPlayer}
         isWaiting={isWaiting}
         isCurrentTurn={isBlackTurn}
@@ -165,24 +170,28 @@ export const LeftSidePanel: React.FC<LeftSidePanelProps> = ({
           </div>
           <div className="flex justify-between items-center p-2 bg-transparent border border-dark-text-tertiary/30 rounded">
             <span className="text-dark-text-tertiary">状态</span>
-            <span className={`font-bold ${
-              isWaiting ? 'text-warning' : gameState.status === 'playing' ? 'text-secondary' : 'text-danger'
-            }`}>
+            <span
+              className={`font-bold ${
+                isWaiting
+                  ? 'text-warning'
+                  : gameState.status === 'playing'
+                    ? 'text-secondary'
+                    : 'text-danger'
+              }`}
+            >
               {isWaiting ? '⏳ 等待中' : gameState.status === 'playing' ? '▶️ 进行中' : '🏁 已结束'}
             </span>
           </div>
           {isSpectator && (
             <div className="p-2 bg-blue-500/20 border border-blue-500/50 rounded">
-              <div className="text-sm text-blue-400 font-medium">
-                👁️ 你正在实时观战
-              </div>
+              <div className="text-sm text-blue-400 font-medium">👁️ 你正在实时观战</div>
             </div>
           )}
         </div>
       </div>
 
       {/* White Player */}
-      <PlayerCard 
+      <PlayerCard
         player={whitePlayer}
         isWaiting={isWaiting}
         isCurrentTurn={isWhiteTurn}

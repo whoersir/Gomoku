@@ -25,7 +25,10 @@ export const PlayerControls: React.FC = () => {
   const volumeSliderRef = useRef<HTMLDivElement>(null);
 
   // 播放模式映射
-  const playModeConfig: Record<PlayMode, { icon: React.ReactNode; label: string; nextMode: PlayMode }> = {
+  const playModeConfig: Record<
+    PlayMode,
+    { icon: React.ReactNode; label: string; nextMode: PlayMode }
+  > = {
     sequential: {
       icon: (
         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -33,7 +36,7 @@ export const PlayerControls: React.FC = () => {
         </svg>
       ),
       label: '顺序播放',
-      nextMode: 'single'
+      nextMode: 'single',
     },
     single: {
       icon: (
@@ -42,7 +45,7 @@ export const PlayerControls: React.FC = () => {
         </svg>
       ),
       label: '单曲循环',
-      nextMode: 'random'
+      nextMode: 'random',
     },
     random: {
       icon: (
@@ -51,8 +54,8 @@ export const PlayerControls: React.FC = () => {
         </svg>
       ),
       label: '随机播放',
-      nextMode: 'sequential'
-    }
+      nextMode: 'sequential',
+    },
   };
 
   // 切换播放模式
@@ -84,8 +87,8 @@ export const PlayerControls: React.FC = () => {
   };
 
   // 计算显示的进度
-  const displayedProgress = isDragging ? dragProgress : (duration > 0 ? currentTime / duration : 0);
-  const displayedTime = isDragging ? formatTime(dragProgress * duration) : currentTime;
+  const displayedProgress = isDragging ? dragProgress : duration > 0 ? currentTime / duration : 0;
+  const displayedTime = isDragging ? dragProgress * duration : currentTime;
 
   // 音量滑块处理
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +177,7 @@ export const PlayerControls: React.FC = () => {
                 className="w-32 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                 style={{
                   WebkitAppearance: 'none',
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`,
                 }}
               />
               <div className="text-center text-xs text-gray-400 mt-1">
@@ -199,7 +202,7 @@ export const PlayerControls: React.FC = () => {
           <button
             onClick={togglePlay}
             className="w-16 h-16 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors shadow-lg"
-            title={isPlaying ? "暂停" : "播放"}
+            title={isPlaying ? '暂停' : '播放'}
           >
             {isPlaying ? (
               <svg className="w-8 h-8 text-gray-900" fill="currentColor" viewBox="0 0 24 24">

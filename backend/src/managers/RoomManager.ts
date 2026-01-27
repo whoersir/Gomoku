@@ -22,8 +22,8 @@ export class RoomManager {
   getRoomList() {
     // Return all active rooms (both full and non-full) to allow spectators to find games
     const rooms = Array.from(this.rooms.values())
-      .filter(room => room.getStatus() !== 'finished') // Exclude finished games
-      .map(room => room.getRoomInfo());
+      .filter((room) => room.getStatus() !== 'finished') // Exclude finished games
+      .map((room) => room.getRoomInfo());
     return rooms;
   }
 

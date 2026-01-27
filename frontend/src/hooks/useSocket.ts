@@ -31,8 +31,10 @@ export const useSocket = () => {
         } catch (err) {
           if (retryCount < maxRetries) {
             retryCount++;
-            console.log(`[useSocket] Connection attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            console.log(
+              `[useSocket] Connection attempt ${retryCount} failed, retrying in ${retryDelay}ms...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
             return tryConnect();
           } else {
             const errorMessage = err instanceof Error ? err.message : 'Connection failed';
@@ -57,7 +59,10 @@ export const useSocket = () => {
   }, []);
 
   const createRoom = useCallback(
-    async (roomName: string, playerName: string): Promise<{ roomId: string; color: 1 | 2 } | null> => {
+    async (
+      roomName: string,
+      playerName: string
+    ): Promise<{ roomId: string; color: 1 | 2 } | null> => {
       try {
         console.log(`[useSocket] Creating room "${roomName}" with player: ${playerName}`);
         const response = await emit('createRoom', { playerName, roomName });
@@ -83,7 +88,11 @@ export const useSocket = () => {
   );
 
   const joinRoom = useCallback(
-    async (roomId: string, playerName: string, preferredColor?: 'black' | 'white'): Promise<{ color: 1 | 2; gameState: GameState } | null> => {
+    async (
+      roomId: string,
+      playerName: string,
+      preferredColor?: 'black' | 'white'
+    ): Promise<{ color: 1 | 2; gameState: GameState } | null> => {
       try {
         const response = await emit('joinRoom', { roomId, playerName, preferredColor });
         if (response.success) {
@@ -143,8 +152,10 @@ export const useSocket = () => {
         } catch (err) {
           if (retryCount < maxRetries && connected) {
             retryCount++;
-            console.log(`[useSocket] getRoomList attempt ${retryCount} failed, retrying in ${retryDelay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            console.log(
+              `[useSocket] getRoomList attempt ${retryCount} failed, retrying in ${retryDelay}ms...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
             return tryGetRoomList();
           } else {
             const errorMessage = err instanceof Error ? err.message : 'Failed to get room list';
@@ -181,35 +192,32 @@ export const useSocket = () => {
     []
   );
 
-  const closeRoom = useCallback(
-    async (roomId: string, isAdmin: boolean): Promise<boolean> => {
-      try {
-        console.log(`[useSocket] closeRoom called - roomId: ${roomId}, isAdmin: ${isAdmin}`);
-        const response = await emit('closeRoom', { roomId, isAdmin }, 5000);
-        console.log(`[useSocket] closeRoom response:`, response);
+  const closeRoom = useCallback(async (roomId: string, isAdmin: boolean): Promise<boolean> => {
+    try {
+      console.log(`[useSocket] closeRoom called - roomId: ${roomId}, isAdmin: ${isAdmin}`);
+      const response = await emit('closeRoom', { roomId, isAdmin }, 5000);
+      console.log(`[useSocket] closeRoom response:`, response);
 
-        if (!response) {
-          console.error(`[useSocket] closeRoom - no response received`);
-          setError('No response from server');
-          return false;
-        }
-
-        if (!response.success) {
-          console.error(`[useSocket] closeRoom failed - message: ${response.message}`);
-          setError(response.message || 'Failed to close room');
-          return false;
-        }
-
-        return true;
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to close room';
-        console.error(`[useSocket] closeRoom error:`, errorMessage);
-        setError(errorMessage);
+      if (!response) {
+        console.error(`[useSocket] closeRoom - no response received`);
+        setError('No response from server');
         return false;
       }
-    },
-    []
-  );
+
+      if (!response.success) {
+        console.error(`[useSocket] closeRoom failed - message: ${response.message}`);
+        setError(response.message || 'Failed to close room');
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to close room';
+      console.error(`[useSocket] closeRoom error:`, errorMessage);
+      setError(errorMessage);
+      return false;
+    }
+  }, []);
 
   const restartGame = useCallback(
     async (roomId: string): Promise<{ gameState: GameState } | null> => {
@@ -253,18 +261,18 @@ export const useSocket = () => {
     // 注册全局事件监听器，即使 socket 还未初始化
     // 当 socket 连接后，这些监听器会自动生效
     const socket = getSocket();
-    
+
     const handleConnect = () => {
       const currentSocket = getSocket();
       setConnected(true);
       setSocketId(currentSocket?.id || null);
     };
-    
+
     const handleDisconnect = () => {
       setConnected(false);
       setSocketId(null);
     };
-    
+
     const handleError = (msg: string) => setError(msg);
 
     // 如果 socket 存在，立即注册监听器

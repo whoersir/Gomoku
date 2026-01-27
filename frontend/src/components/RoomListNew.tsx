@@ -61,8 +61,8 @@ export const RoomListNew: React.FC<RoomListProps> = ({
 
   const handleJoinClick = (roomId: string) => {
     // 通过 roomId 找到对应的房间
-    const targetRoom = rooms.find(room => room.roomId === roomId);
-    
+    const targetRoom = rooms.find((room) => room.roomId === roomId);
+
     if (targetRoom && targetRoom.status === 'waiting' && targetRoom.playerCount < 2) {
       // 有可用房间，加入现有房间
       setSelectedRoomId(roomId);
@@ -87,12 +87,15 @@ export const RoomListNew: React.FC<RoomListProps> = ({
         // 颜色已被占用，不执行任何操作，但可以给出提示（可选）
         console.warn(`颜色 ${color} 已被占用`);
         // 可以在这里添加 alert 或 toast 提示
-        const occupiedName = color === 'black' ? selectedRoom.blackPlayer?.name : selectedRoom.whitePlayer?.name;
-        alert(`抱歉，${color === 'black' ? '黑棋' : '白棋'}已被 ${occupiedName || '其他玩家'} 占用，请选择其他颜色。`);
+        const occupiedName =
+          color === 'black' ? selectedRoom.blackPlayer?.name : selectedRoom.whitePlayer?.name;
+        alert(
+          `抱歉，${color === 'black' ? '黑棋' : '白棋'}已被 ${occupiedName || '其他玩家'} 占用，请选择其他颜色。`
+        );
         return; // 提前返回，不执行后续操作
       }
     }
-    
+
     if (isNewRoom) {
       // 创建新房间
       const defaultRoomName = `快速游戏-${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -109,7 +112,8 @@ export const RoomListNew: React.FC<RoomListProps> = ({
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.size <= 2 * 1024 * 1024) { // 限制2MB
+    if (file && file.size <= 2 * 1024 * 1024) {
+      // 限制2MB
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
@@ -166,7 +170,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
           // 为每首音乐添加播放次数（默认为0）
           const musicWithPlayCounts = playlist.map((music: any) => ({
             ...music,
-            playCount: playCounts[music.id] || 0
+            playCount: playCounts[music.id] || 0,
           }));
 
           // 过滤出播放次数≥1的歌曲，按播放次数降序排序，取前10首
@@ -212,19 +216,21 @@ export const RoomListNew: React.FC<RoomListProps> = ({
     <>
       {/* Error Message */}
       {error && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '12px 24px',
-          backgroundColor: 'rgba(248, 113, 113, 0.9)',
-          color: 'white',
-          borderRadius: '10px',
-          fontSize: '14px',
-          zIndex: 1000,
-          backdropFilter: 'blur(10px)',
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '12px 24px',
+            backgroundColor: 'rgba(248, 113, 113, 0.9)',
+            color: 'white',
+            borderRadius: '10px',
+            fontSize: '14px',
+            zIndex: 1000,
+            backdropFilter: 'blur(10px)',
+          }}
+        >
           {error}
         </div>
       )}
@@ -241,13 +247,18 @@ export const RoomListNew: React.FC<RoomListProps> = ({
             <div className="glass-card-content">
               {/* 头像和基本信息（常驻显示） */}
               <div className="profile-basic-info">
-                <div
-                  className="profile-avatar"
-                  onClick={handleAvatarClick}
-                  title="点击更换头像"
-                >
+                <div className="profile-avatar" onClick={handleAvatarClick} title="点击更换头像">
                   {isAvatarImage ? (
-                    <img src={customAvatar} alt="玩家头像" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img
+                      src={customAvatar}
+                      alt="玩家头像"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                      }}
+                    />
                   ) : (
                     displayAvatar
                   )}
@@ -331,7 +342,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
             <div className="card-default-title">五子棋</div>
             <div className="card-default-subtitle">天王山之战</div>
           </div>
-        
+
           {/* Hover layer: shows on hover */}
           <div className="card-hover">
             <div className="card-hover-content">
@@ -345,8 +356,6 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                 </ul>
               </div>
 
-
-        
               <div className="card-actions">
                 <button
                   onClick={() => handleJoinClick(rooms && rooms.length > 0 ? rooms[0].roomId : '')}
@@ -363,44 +372,54 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                   观战
                 </button>
               </div>
-              
-
             </div>
           </div>
         </div>
 
-
         {/* Piece Selection Modal */}
         {showPieceSelection && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(5px)'
-          }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.9)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: '20px',
-              padding: '40px',
-              textAlign: 'center',
-              boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5)',
-              maxWidth: '400px',
-              width: '90%'
-            }}>
-              <h3 style={{ fontSize: '28px', color: '#333', marginBottom: '20px' }}>选择棋子颜色</h3>
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              backdropFilter: 'blur(5px)',
+            }}
+          >
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px',
+                padding: '40px',
+                textAlign: 'center',
+                boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5)',
+                maxWidth: '400px',
+                width: '90%',
+              }}
+            >
+              <h3 style={{ fontSize: '28px', color: '#333', marginBottom: '20px' }}>
+                选择棋子颜色
+              </h3>
               <p style={{ fontSize: '16px', color: '#666', marginBottom: '30px' }}>
                 {isNewRoom ? '创建新房间，请选择您的棋子颜色' : '请选择您想执黑棋还是白棋'}
               </p>
-              
-              <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginBottom: '30px' }}>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '20px',
+                  justifyContent: 'center',
+                  marginBottom: '30px',
+                }}
+              >
                 {/* 黑棋按钮 */}
                 {(() => {
                   const isOccupied = !!(selectedRoom && selectedRoom.blackPlayer);
@@ -413,7 +432,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                       style={{
                         flex: 1,
                         padding: '15px',
-                        background: isDisabled 
+                        background: isDisabled
                           ? 'linear-gradient(135deg, #666 0%, #888 100%)'
                           : 'linear-gradient(135deg, #333 0%, #555 100%)',
                         color: isDisabled ? '#ccc' : 'white',
@@ -425,7 +444,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                         boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
                         transition: 'all 0.3s ease',
                         whiteSpace: 'nowrap',
-                        opacity: isDisabled ? 0.7 : 1
+                        opacity: isDisabled ? 0.7 : 1,
                       }}
                       onMouseEnter={(e) => {
                         if (!isDisabled) {
@@ -441,11 +460,15 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                       }}
                     >
                       ⚫ 黑棋 (先手)
-                      {isOccupied && <div style={{ fontSize: '12px', marginTop: '5px', color: '#ff9999' }}>已被 {occupiedByName} 占用</div>}
+                      {isOccupied && (
+                        <div style={{ fontSize: '12px', marginTop: '5px', color: '#ff9999' }}>
+                          已被 {occupiedByName} 占用
+                        </div>
+                      )}
                     </button>
                   );
                 })()}
-                
+
                 {/* 白棋按钮 */}
                 {(() => {
                   const isOccupied = !!(selectedRoom && selectedRoom.whitePlayer);
@@ -470,7 +493,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                         boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
                         transition: 'all 0.3s ease',
                         whiteSpace: 'nowrap',
-                        opacity: isDisabled ? 0.7 : 1
+                        opacity: isDisabled ? 0.7 : 1,
                       }}
                       onMouseEnter={(e) => {
                         if (!isDisabled) {
@@ -486,12 +509,16 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                       }}
                     >
                       ⚪ 白棋 (后手)
-                      {isOccupied && <div style={{ fontSize: '12px', marginTop: '5px', color: '#ff9999' }}>已被 {occupiedByName} 占用</div>}
+                      {isOccupied && (
+                        <div style={{ fontSize: '12px', marginTop: '5px', color: '#ff9999' }}>
+                          已被 {occupiedByName} 占用
+                        </div>
+                      )}
                     </button>
                   );
                 })()}
               </div>
-              
+
               <button
                 onClick={() => {
                   setShowPieceSelection(false);
@@ -506,7 +533,7 @@ export const RoomListNew: React.FC<RoomListProps> = ({
                   borderRadius: '10px',
                   fontSize: '14px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(255, 255, 255, 0.4)';

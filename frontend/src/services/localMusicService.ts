@@ -15,7 +15,7 @@ class LocalMusicService {
       }
 
       console.log('[LocalMusicService] Searching local music:', keyword);
-      
+
       const response = await fetch(
         `/api/music/local?keyword=${encodeURIComponent(keyword)}&limit=${limit}`
       );
@@ -36,14 +36,14 @@ class LocalMusicService {
         console.log('[LocalMusicService] First track raw data:', data[0]);
         console.log('[LocalMusicService] First track URL:', data[0].url);
       }
-      return data.map(track => ({
+      return data.map((track) => ({
         id: track.id,
         title: track.title,
         artist: track.artist,
         album: track.album,
         duration: track.duration,
         url: track.url,
-        cover: track.cover || 'https://picsum.photos/64/64'
+        cover: track.cover || 'https://picsum.photos/64/64',
       }));
     } catch (error) {
       console.error('[LocalMusicService] Search error:', error);

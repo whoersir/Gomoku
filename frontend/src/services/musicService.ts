@@ -13,14 +13,17 @@ class MusicService {
       // 搜索策略：只搜索本地音乐
       try {
         console.log('[MusicService] Searching local music library...');
-        const localResults = await localMusicService.searchMusic(filters.query, filters.limit || 10);
+        const localResults = await localMusicService.searchMusic(
+          filters.query,
+          filters.limit || 10
+        );
         if (localResults.length > 0) {
           console.log(`[MusicService] Local music found ${localResults.length} tracks`);
           if (localResults.length > 0) {
             console.log('[MusicService] First track before return:', {
               title: localResults[0].title,
               url: localResults[0].url,
-              urlType: typeof localResults[0].url
+              urlType: typeof localResults[0].url,
             });
           }
           return localResults;
@@ -117,7 +120,7 @@ class MusicService {
           id: localTracks[0].id,
           title: localTracks[0].title,
           url: localTracks[0].url,
-          cover: localTracks[0].cover
+          cover: localTracks[0].cover,
         });
       }
 
@@ -129,7 +132,7 @@ class MusicService {
         album: track.album,
         duration: track.duration,
         url: track.url,
-        cover: track.cover || 'https://picsum.photos/64/64'
+        cover: track.cover || 'https://picsum.photos/64/64',
       }));
 
       console.log('[musicService] 转换后的第一首歌:', tracks[0]);
@@ -156,7 +159,7 @@ class MusicService {
 
   async getTrackDetails(trackId: string): Promise<MusicTrack | null> {
     try {
-      return presetPlaylist.find(t => t.id === trackId) || null;
+      return presetPlaylist.find((t) => t.id === trackId) || null;
     } catch (error) {
       console.error('Get track details error:', error);
       return null;
@@ -168,7 +171,7 @@ class MusicService {
   }
 
   getTrackById(trackId: string): MusicTrack | null {
-    return presetPlaylist.find(t => t.id === trackId) || null;
+    return presetPlaylist.find((t) => t.id === trackId) || null;
   }
 
   private filterPresetPlaylist(query: string): MusicTrack[] {
@@ -176,7 +179,7 @@ class MusicService {
 
     const lowerQuery = query.toLowerCase();
     return presetPlaylist.filter(
-      track =>
+      (track) =>
         track.title.toLowerCase().includes(lowerQuery) ||
         track.artist.toLowerCase().includes(lowerQuery) ||
         track.album.toLowerCase().includes(lowerQuery)

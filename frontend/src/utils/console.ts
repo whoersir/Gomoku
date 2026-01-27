@@ -1,7 +1,7 @@
 /**
  * Console utility that allows disabling console logs in production
  */
-const isDevelopment = import.meta.env.DEV || process.env.NODE_ENV === 'development';
+const isDevelopment = import.meta.env.DEV;
 
 const noop = () => {};
 

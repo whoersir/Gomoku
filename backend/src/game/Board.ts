@@ -25,7 +25,7 @@ export class Board {
   }
 
   getBoard(): number[][] {
-    return this.board.map(row => [...row]);
+    return this.board.map((row) => [...row]);
   }
 
   getCell(x: number, y: number): number {

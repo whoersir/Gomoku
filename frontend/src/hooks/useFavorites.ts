@@ -22,10 +22,8 @@ export const useFavorites = () => {
   }, [favorites]);
 
   const toggleFavorite = (trackId: string) => {
-    setFavorites(prev => 
-      prev.includes(trackId)
-        ? prev.filter(id => id !== trackId)
-        : [...prev, trackId]
+    setFavorites((prev) =>
+      prev.includes(trackId) ? prev.filter((id) => id !== trackId) : [...prev, trackId]
     );
   };
 
@@ -33,12 +31,12 @@ export const useFavorites = () => {
 
   const addFavorite = (trackId: string) => {
     if (!isFavorite(trackId)) {
-      setFavorites(prev => [...prev, trackId]);
+      setFavorites((prev) => [...prev, trackId]);
     }
   };
 
   const removeFavorite = (trackId: string) => {
-    setFavorites(prev => prev.filter(id => id !== trackId));
+    setFavorites((prev) => prev.filter((id) => id !== trackId));
   };
 
   return {

@@ -1,8 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { log } from '../utils/logger';
 
 // 从环境变量获取配置
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zjvqemlddehxtwuohjzn.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnFlbWxkZGVoeHR3dW9oanpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTIwNTMsImV4cCI6MjA4NDYyODA1M30.BU8NNhJPRCnSDKo5LY4lpH3swit8UCofbr10PPP3IHk';
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqdnFlbWxkZGVoeHR3dW9oanpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwNTIwNTMsImV4cCI6MjA4NDYyODA1M30.BU8NNhJPRCnSDKo5LY4lpH3swit8UCofbr10PPP3IHk';
 
 // Supabase客户端单例
 let supabaseClient: SupabaseClient | null = null;
@@ -121,14 +124,14 @@ export class SupabaseService {
         .single();
 
       if (createError) {
-        console.error('[Supabase] Register player error:', createError);
+        log.error('[Supabase] Register player error:', createError);
         return { success: false, error: '注册失败，请稍后再试' };
       }
 
-      console.log(`[Supabase] Registered new player: ${trimmedName} (${created.id})`);
+      log.info(`[Supabase] Registered new player: ${trimmedName} (${created.id})`);
       return { success: true, player: created, isNewUser: true };
     } catch (error) {
-      console.error('[Supabase] registerPlayer error:', error);
+      log.error('[Supabase] registerPlayer error:', error);
       return { success: false, error: '注册失败' };
     }
   }
@@ -161,10 +164,10 @@ export class SupabaseService {
         .update({ last_played_at: new Date().toISOString() })
         .eq('id', player.id);
 
-      console.log(`[Supabase] Player logged in: ${trimmedName} (${player.id})`);
+      log.info(`[Supabase] Player logged in: ${trimmedName} (${player.id})`);
       return { success: true, player, isNewUser: false };
     } catch (error) {
-      console.error('[Supabase] loginPlayer error:', error);
+      log.error('[Supabase] loginPlayer error:', error);
       return { success: false, error: '登录失败' };
     }
   }
@@ -198,12 +201,12 @@ export class SupabaseService {
         .eq('id', playerId);
 
       if (error) {
-        console.error('[Supabase] Update socket_id error:', error);
+        log.error('[Supabase] Update socket_id error:', error);
         return false;
       }
       return true;
     } catch (error) {
-      console.error('[Supabase] updatePlayerSocketId error:', error);
+      log.error('[Supabase] updatePlayerSocketId error:', error);
       return false;
     }
   }
@@ -283,14 +286,14 @@ export class SupabaseService {
         .single();
 
       if (createError) {
-        console.error('[Supabase] Create player error:', createError);
+        log.error('[Supabase] Create player error:', createError);
         return null;
       }
 
-      console.log(`[Supabase] Created temp player: ${name} (${socketId})`);
+      log.info(`[Supabase] Created temp player: ${name} (${socketId})`);
       return created;
     } catch (error) {
-      console.error('[Supabase] getOrCreatePlayer error:', error);
+      log.error('[Supabase] getOrCreatePlayer error:', error);
       return null;
     }
   }
@@ -307,12 +310,12 @@ export class SupabaseService {
         .single();
 
       if (error) {
-        console.error('[Supabase] Get player error:', error);
+        log.error('[Supabase] Get player error:', error);
         return null;
       }
       return data;
     } catch (error) {
-      console.error('[Supabase] getPlayerBySocketId error:', error);
+      log.error('[Supabase] getPlayerBySocketId error:', error);
       return null;
     }
   }
@@ -329,7 +332,7 @@ export class SupabaseService {
       const player = await this.getPlayerBySocketId(socketId);
       if (!player) return false;
 
-      const scoreChange = isDraw ? 0 : (isWinner ? 25 : -20);
+      const scoreChange = isDraw ? 0 : isWinner ? 25 : -20;
       const updates: Partial<PlayerRecord> = {
         total_games: player.total_games + 1,
         score: Math.max(0, player.score + scoreChange),
@@ -350,14 +353,16 @@ export class SupabaseService {
         .eq('socket_id', socketId);
 
       if (error) {
-        console.error('[Supabase] Update player result error:', error);
+        log.error('[Supabase] Update player result error:', error);
         return false;
       }
 
-      console.log(`[Supabase] Updated player ${socketId}: ${isWinner ? 'WIN' : isDraw ? 'DRAW' : 'LOSS'} (+${scoreChange} score)`);
+      log.info(
+        `[Supabase] Updated player ${socketId}: ${isWinner ? 'WIN' : isDraw ? 'DRAW' : 'LOSS'} (+${scoreChange} score)`
+      );
       return true;
     } catch (error) {
-      console.error('[Supabase] updatePlayerGameResult error:', error);
+      log.error('[Supabase] updatePlayerGameResult error:', error);
       return false;
     }
   }
@@ -382,9 +387,14 @@ export class SupabaseService {
       const blackPlayerRecord = await this.getPlayerBySocketId(gameData.blackPlayer.id);
       const whitePlayerRecord = await this.getPlayerBySocketId(gameData.whitePlayer.id);
 
-      const winnerValue = gameData.winner === 1 ? 'black' : 
-                          gameData.winner === 2 ? 'white' : 
-                          gameData.winner === 'draw' ? 'draw' : null;
+      const winnerValue =
+        gameData.winner === 1
+          ? 'black'
+          : gameData.winner === 2
+            ? 'white'
+            : gameData.winner === 'draw'
+              ? 'draw'
+              : null;
 
       const gameRecord: GameRecord = {
         room_id: gameData.roomId,
@@ -408,14 +418,14 @@ export class SupabaseService {
         .single();
 
       if (error) {
-        console.error('[Supabase] Save game record error:', error);
+        log.error('[Supabase] Save game record error:', error);
         return null;
       }
 
-      console.log(`[Supabase] Saved game record: ${data.id}`);
+      log.info(`[Supabase] Saved game record: ${data.id}`);
       return data.id;
     } catch (error) {
-      console.error('[Supabase] saveGameRecord error:', error);
+      log.error('[Supabase] saveGameRecord error:', error);
       return null;
     }
   }
@@ -432,13 +442,13 @@ export class SupabaseService {
         .range(offset, offset + limit - 1);
 
       if (error) {
-        console.error('[Supabase] Get game history error:', error);
+        log.error('[Supabase] Get game history error:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('[Supabase] getGameHistory error:', error);
+      log.error('[Supabase] getGameHistory error:', error);
       return [];
     }
   }
@@ -450,19 +460,16 @@ export class SupabaseService {
    */
   async getLeaderboard(limit: number = 10): Promise<LeaderboardEntry[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('leaderboard')
-        .select('*')
-        .limit(limit);
+      const { data, error } = await this.supabase.from('leaderboard').select('*').limit(limit);
 
       if (error) {
-        console.error('[Supabase] Get leaderboard error:', error);
+        log.error('[Supabase] Get leaderboard error:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('[Supabase] getLeaderboard error:', error);
+      log.error('[Supabase] getLeaderboard error:', error);
       return [];
     }
   }
@@ -500,7 +507,7 @@ export class SupabaseService {
         winRate,
       };
     } catch (error) {
-      console.error('[Supabase] getPlayerStatsByName error:', error);
+      log.error('[Supabase] getPlayerStatsByName error:', error);
       return null;
     }
   }
@@ -519,13 +526,13 @@ export class SupabaseService {
         .gt('score', player.score);
 
       if (error) {
-        console.error('[Supabase] Get player rank error:', error);
+        log.error('[Supabase] Get player rank error:', error);
         return null;
       }
 
       return (count || 0) + 1;
     } catch (error) {
-      console.error('[Supabase] getPlayerRank error:', error);
+      log.error('[Supabase] getPlayerRank error:', error);
       return null;
     }
   }

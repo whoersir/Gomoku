@@ -20,7 +20,13 @@ interface PlayerHistoryProps {
   embedded?: boolean;
 }
 
-export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName, onClose, serverUrl, embedded = false }) => {
+export const PlayerHistory: React.FC<PlayerHistoryProps> = ({
+  isOpen,
+  playerName,
+  onClose,
+  serverUrl,
+  embedded = false,
+}) => {
   if (!isOpen) return null;
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +64,7 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
     let draws = 0;
     let lastPlayedAt = 0;
 
-    history.forEach(record => {
+    history.forEach((record) => {
       if (record.finishedAt > lastPlayedAt) {
         lastPlayedAt = record.finishedAt;
       }
@@ -101,7 +107,7 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
 
   const formatDuration = (ms: number | undefined, record: HistoryRecord) => {
     // 如果没有 duration 字段，尝试从 createdAt 和 finishedAt 计算
-    const duration = ms ?? (record.finishedAt - record.createdAt);
+    const duration = ms ?? record.finishedAt - record.createdAt;
     if (!duration || isNaN(duration)) return '未知';
     const minutes = Math.floor(duration / 60000);
     const seconds = Math.floor((duration % 60000) / 1000);
@@ -110,17 +116,19 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
 
   const getResultText = (record: HistoryRecord) => {
     if (!record.winner) return '🤝 平局';
-    const playerWon = record.winner === 1
-      ? record.blackPlayer.name === playerName
-      : record.whitePlayer.name === playerName;
+    const playerWon =
+      record.winner === 1
+        ? record.blackPlayer.name === playerName
+        : record.whitePlayer.name === playerName;
     return playerWon ? '🏆 胜利' : '😢 失败';
   };
 
   const getResultClass = (record: HistoryRecord) => {
     if (!record.winner) return 'text-gray-400';
-    const playerWon = record.winner === 1
-      ? record.blackPlayer.name === playerName
-      : record.whitePlayer.name === playerName;
+    const playerWon =
+      record.winner === 1
+        ? record.blackPlayer.name === playerName
+        : record.whitePlayer.name === playerName;
     return playerWon ? 'text-success' : 'text-danger';
   };
 
@@ -153,7 +161,7 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
     return (
       <div className="card-base p-4 h-full overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">📊 我的记录</h2>
-        
+
         {error ? (
           <div className="text-center py-8 text-danger">{error}</div>
         ) : history.length === 0 ? (
@@ -175,7 +183,9 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
                   </div>
                   <div className="flex justify-between">
                     <span className="text-dark-text-secondary">战绩:</span>
-                    <span className="font-bold">{stats.wins}胜 {stats.losses}负</span>
+                    <span className="font-bold">
+                      {stats.wins}胜 {stats.losses}负
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-dark-text-secondary">总场次:</span>
@@ -184,7 +194,7 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
                 </div>
               </div>
             )}
-            
+
             {/* 对局历史 */}
             <div className="space-y-2">
               <h3 className="text-sm font-bold text-dark-text-secondary">📜 最近对局</h3>
@@ -235,9 +245,7 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
             </button>
           </div>
         ) : history.length === 0 ? (
-          <div className="text-center py-8 text-dark-text-secondary">
-            暂无对局记录
-          </div>
+          <div className="text-center py-8 text-dark-text-secondary">暂无对局记录</div>
         ) : (
           <>
             {/* Player Stats */}
@@ -294,28 +302,28 @@ export const PlayerHistory: React.FC<PlayerHistoryProps> = ({ isOpen, playerName
                       </div>
                       <div className="text-sm text-dark-text-secondary">
                         {formatDate(record.finishedAt)}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">⚫</span>
-                          <span>{record.blackPlayer.name}</span>
-                          {record.winner === 1 && <span className="text-success">🏆</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">⚪</span>
-                          <span>{record.whitePlayer.name}</span>
-                          {record.winner === 2 && <span className="text-success">🏆</span>}
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-xs text-dark-text-secondary">
-                        <span>🎯 手数: {record.moveCount}</span>
-                        <span>⏱️ 时长: {formatDuration(record.duration, record)}</span>
-                        <span>🏠 房间: {record.roomId}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">⚫</span>
+                        <span>{record.blackPlayer.name}</span>
+                        {record.winner === 1 && <span className="text-success">🏆</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">⚪</span>
+                        <span>{record.whitePlayer.name}</span>
+                        {record.winner === 2 && <span className="text-success">🏆</span>}
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-dark-text-secondary">
+                      <span>🎯 手数: {record.moveCount}</span>
+                      <span>⏱️ 时长: {formatDuration(record.duration, record)}</span>
+                      <span>🏠 房间: {record.roomId}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}

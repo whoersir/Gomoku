@@ -31,9 +31,7 @@ export const PlayerLeftPanel: React.FC<PlayerLeftPanelProps> = ({
       {/* Spectator Badge */}
       {isSpectator && (
         <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/50">
-          <div className="text-sm text-blue-400">
-            👁️ 你正在实时观战 - {playerName}
-          </div>
+          <div className="text-sm text-blue-400">👁️ 你正在实时观战 - {playerName}</div>
         </div>
       )}
 

@@ -19,11 +19,7 @@ interface ConnectDialogProps {
 
 const SERVER_URL = getBackendUrl();
 
-export const ConnectDialog: React.FC<ConnectDialogProps> = ({
-  onConnect,
-  loading,
-  error,
-}) => {
+export const ConnectDialog: React.FC<ConnectDialogProps> = ({ onConnect, loading, error }) => {
   const [playerName, setPlayerName] = useState('');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authError, setAuthError] = useState<string | null>(null);
@@ -56,7 +52,9 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
     const timer = setTimeout(async () => {
       setCheckingName(true);
       try {
-        const res = await fetch(`${SERVER_URL}/api/auth/check-name?name=${encodeURIComponent(playerName.trim())}`);
+        const res = await fetch(
+          `${SERVER_URL}/api/auth/check-name?name=${encodeURIComponent(playerName.trim())}`
+        );
         const data = await res.json();
         setNameAvailable(data.available);
       } catch {
@@ -92,7 +90,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
         // Save player info
         localStorage.setItem('gomoku_player', JSON.stringify(data.player));
         setSavedPlayer(data.player);
-        
+
         // Connect to server
         onConnect(SERVER_URL, trimmedName, data.player.id);
       } else {
@@ -128,7 +126,7 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
         // Save player info
         localStorage.setItem('gomoku_player', JSON.stringify(data.player));
         setSavedPlayer(data.player);
-        
+
         // Connect to server
         onConnect(SERVER_URL, trimmedName, data.player.id);
       } else {
@@ -176,14 +174,14 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
       <div className="color"></div>
       <div className="color"></div>
       <div className="color"></div>
-      
+
       <div className="login-box">
         {/* 浮动方块 */}
-        <div className="square" style={{'--i': 0} as React.CSSProperties}></div>
-        <div className="square" style={{'--i': 1} as React.CSSProperties}></div>
-        <div className="square" style={{'--i': 2} as React.CSSProperties}></div>
-        <div className="square" style={{'--i': 3} as React.CSSProperties}></div>
-        <div className="square" style={{'--i': 4} as React.CSSProperties}></div>
+        <div className="square" style={{ '--i': 0 } as React.CSSProperties}></div>
+        <div className="square" style={{ '--i': 1 } as React.CSSProperties}></div>
+        <div className="square" style={{ '--i': 2 } as React.CSSProperties}></div>
+        <div className="square" style={{ '--i': 3 } as React.CSSProperties}></div>
+        <div className="square" style={{ '--i': 4 } as React.CSSProperties}></div>
 
         <div className="login-container">
           <div className="login-form">
@@ -194,21 +192,19 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
               <div>
                 <div className="saved-player-info">
                   <div className="welcome-message">欢迎回来，{savedPlayer.name}</div>
-                  <div className="player-stats">积分 {savedPlayer.score} | {savedPlayer.wins}胜 {savedPlayer.losses}负</div>
+                  <div className="player-stats">
+                    积分 {savedPlayer.score} | {savedPlayer.wins}胜 {savedPlayer.losses}负
+                  </div>
                 </div>
                 <div className="inputBox">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    onClick={handleQuickLogin}
-                  >
+                  <button type="submit" disabled={isLoading} onClick={handleQuickLogin}>
                     {isLoading ? '连接中...' : '快速进入'}
                   </button>
                 </div>
                 <div className="inputBox">
                   <button
                     onClick={handleLogout}
-                    style={{background: 'rgba(255, 255, 255, 0.1)', color: '#fff'}}
+                    style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#fff' }}
                   >
                     退出登录
                   </button>
@@ -228,27 +224,29 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
                   maxLength={20}
                 />
                 {authMode === 'register' && playerName.trim() && (
-                  <span className={`name-check ${nameAvailable === true ? 'available' : (nameAvailable === false ? 'taken' : '')}`}>
-                    {checkingName ? '...' : (nameAvailable === true ? '✓' : (nameAvailable === false ? '✗' : ''))}
+                  <span
+                    className={`name-check ${nameAvailable === true ? 'available' : nameAvailable === false ? 'taken' : ''}`}
+                  >
+                    {checkingName
+                      ? '...'
+                      : nameAvailable === true
+                        ? '✓'
+                        : nameAvailable === false
+                          ? '✗'
+                          : ''}
                   </span>
                 )}
                 {authMode === 'register' && nameAvailable === false && (
                   <p className="name-error">该昵称已被注册</p>
                 )}
                 {authMode === 'register' && nameAvailable === true && (
-                  <p className="name-hint">
-                    注册后昵称将作为您的唯一标识
-                  </p>
+                  <p className="name-hint">注册后昵称将作为您的唯一标识</p>
                 )}
               </div>
             )}
 
             {/* Error Messages */}
-            {(error || authError) && (
-              <div className="error-message">
-                {authError || error}
-              </div>
-            )}
+            {(error || authError) && <div className="error-message">{authError || error}</div>}
 
             {/* Submit Button */}
             {!savedPlayer && (
@@ -259,32 +257,51 @@ export const ConnectDialog: React.FC<ConnectDialogProps> = ({
                     disabled={isLoading || (authMode === 'register' && nameAvailable === false)}
                   >
                     {isLoading
-                      ? (authMode === 'register' ? '注册中...' : '登录中...')
-                      : (authMode === 'register' ? '注册并进入' : '登录')
-                    }
+                      ? authMode === 'register'
+                        ? '注册中...'
+                        : '登录中...'
+                      : authMode === 'register'
+                        ? '注册并进入'
+                        : '登录'}
                   </button>
                 </div>
-                
+
                 {/* 模式切换提示 */}
                 {authMode === 'login' ? (
-                  <div className="login-forget" style={{fontSize: '1.05em'}}>
-                    没有帐户？<a href="#" onClick={(e) => { e.preventDefault(); setAuthMode('register'); }}>注册</a>
+                  <div className="login-forget" style={{ fontSize: '1.05em' }}>
+                    没有帐户？
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setAuthMode('register');
+                      }}
+                    >
+                      注册
+                    </a>
                   </div>
                 ) : (
-                  <div className="login-forget" style={{fontSize: '1.05em'}}>
-                    已有帐户？<a href="#" onClick={(e) => { e.preventDefault(); setAuthMode('login'); }}>登录</a>
+                  <div className="login-forget" style={{ fontSize: '1.05em' }}>
+                    已有帐户？
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setAuthMode('login');
+                      }}
+                    >
+                      登录
+                    </a>
                   </div>
                 )}
               </div>
             )}
 
             {/* Server Info */}
-            <div className="login-forget">
-              💡 服务器地址：{SERVER_URL.replace('http://', '')}
-            </div>
+            <div className="login-forget">💡 服务器地址：{SERVER_URL.replace('http://', '')}</div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   );
 };

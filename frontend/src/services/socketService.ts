@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
-const eventHandlers = new Map<string, Set<Function>>();  // 追踪所有已注册的处理器
-const pendingRegistrations = new Map<string, Set<Function>>();  // 存储等待 socket 初始化的监听器
+const eventHandlers = new Map<string, Set<Function>>(); // 追踪所有已注册的处理器
+const pendingRegistrations = new Map<string, Set<Function>>(); // 存储等待 socket 初始化的监听器
 
 export const connectSocket = (serverUrl: string): Promise<Socket> => {
   return new Promise((resolve, reject) => {
@@ -46,7 +46,7 @@ const registerPendingListeners = () => {
 
   // 先清空所有已注册的监听器，避免重复
   eventHandlers.forEach((handlers, event) => {
-    handlers.forEach(handler => {
+    handlers.forEach((handler) => {
       socket?.off(event, handler as any);
     });
   });
@@ -54,8 +54,10 @@ const registerPendingListeners = () => {
 
   // 注册所有等待的监听器
   pendingRegistrations.forEach((handlers, event) => {
-    console.log(`[Socket] Registering pending listeners for event: ${event}, count: ${handlers.size}`);
-    handlers.forEach(handler => {
+    console.log(
+      `[Socket] Registering pending listeners for event: ${event}, count: ${handlers.size}`
+    );
+    handlers.forEach((handler) => {
       socket.on(event, handler as any);
 
       // 追踪该处理器
@@ -73,7 +75,7 @@ export const disconnectSocket = () => {
   if (socket) {
     // 清理所有事件监听器
     eventHandlers.forEach((handlers, event) => {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         socket?.off(event, handler as any);
       });
     });
@@ -120,7 +122,9 @@ export const emit = (event: string, data?: any, timeout: number = 10000): Promis
     // 等待 socket 连接
     if (!socket?.connected) {
       const errorMsg = 'Socket not connected';
-      console.warn(`[socketService] emit warning - ${event}: ${errorMsg}, waiting for connection...`);
+      console.warn(
+        `[socketService] emit warning - ${event}: ${errorMsg}, waiting for connection...`
+      );
 
       // 设置一个定时器等待连接
       const waitForConnection = setInterval(() => {
@@ -189,7 +193,7 @@ export const off = (event: string, callback?: (data: any) => void) => {
     // 移除该事件的所有处理器
     const handlers = eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach(handler => {
+      handlers.forEach((handler) => {
         socket?.off(event, handler as any);
       });
       eventHandlers.delete(event);
@@ -202,7 +206,9 @@ export const clearEventListeners = (event: string) => {
   // 先清理 pendingRegistrations 中的监听器（无论 socket 是否初始化）
   const pendingHandlers = pendingRegistrations.get(event);
   if (pendingHandlers) {
-    console.log(`[socketService] Clearing pending listeners for event: ${event}, count: ${pendingHandlers.size}`);
+    console.log(
+      `[socketService] Clearing pending listeners for event: ${event}, count: ${pendingHandlers.size}`
+    );
     pendingHandlers.clear();
   }
 
@@ -210,8 +216,10 @@ export const clearEventListeners = (event: string) => {
   if (socket) {
     const handlers = eventHandlers.get(event);
     if (handlers) {
-      console.log(`[socketService] Force clearing all listeners for event: ${event}, count: ${handlers.size}`);
-      handlers.forEach(handler => {
+      console.log(
+        `[socketService] Force clearing all listeners for event: ${event}, count: ${handlers.size}`
+      );
+      handlers.forEach((handler) => {
         socket.off(event, handler as any);
       });
       eventHandlers.delete(event);

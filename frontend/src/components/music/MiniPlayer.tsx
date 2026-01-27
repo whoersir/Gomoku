@@ -6,14 +6,8 @@ interface MiniPlayerProps {
 }
 
 export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFullPlayer }) => {
-  const {
-    currentTrack,
-    isPlaying,
-    currentTime,
-    duration,
-    togglePlay,
-    formatTime,
-  } = useMusicPlayer();
+  const { currentTrack, isPlaying, currentTime, duration, togglePlay, formatTime } =
+    useMusicPlayer();
 
   // 如果没有音乐，显示占位符
   if (!currentTrack) {
@@ -24,7 +18,7 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFullPlayer }) => {
           width: '320px',
           border: '2px solid rgba(255, 255, 255, 0.3)',
           zIndex: 9999,
-          bottom: 'calc(4px + 700px)'
+          bottom: 'calc(4px + 700px)',
         }}
         onClick={onOpenFullPlayer}
       >
@@ -80,8 +74,14 @@ export const MiniPlayer: React.FC<MiniPlayerProps> = ({ onOpenFullPlayer }) => {
             <div className="absolute inset-0 bg-black/30 rounded flex items-center justify-center">
               <div className="flex gap-1 items-end">
                 <div className="w-1 bg-white rounded animate-pulse" style={{ height: '8px' }}></div>
-                <div className="w-1 bg-white rounded animate-pulse" style={{ height: '12px', animationDelay: '0.1s' }}></div>
-                <div className="w-1 bg-white rounded animate-pulse" style={{ height: '6px', animationDelay: '0.2s' }}></div>
+                <div
+                  className="w-1 bg-white rounded animate-pulse"
+                  style={{ height: '12px', animationDelay: '0.1s' }}
+                ></div>
+                <div
+                  className="w-1 bg-white rounded animate-pulse"
+                  style={{ height: '6px', animationDelay: '0.2s' }}
+                ></div>
               </div>
             </div>
           )}

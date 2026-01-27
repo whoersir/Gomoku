@@ -18,28 +18,33 @@ export const LyricsView: React.FC = () => {
   // 加载并解析LRC歌词
   useEffect(() => {
     console.log('[LyricsView] Effect triggered, currentTrack:', currentTrack);
-    
-    if (!currentTrack?.lrc) {
-      console.log('[LyricsView] No lrc URL found, clearing lyrics');
+
+    if (!currentTrack?.lyrics) {
+      console.log('[LyricsView] No lyrics URL found, clearing lyrics');
       setLyrics([]);
       return;
     }
 
-    console.log('[LyricsView] Loading lyrics from:', currentTrack.lrc);
-    
-    fetch(currentTrack.lrc)
-      .then(res => {
+    console.log('[LyricsView] Loading lyrics from:', currentTrack.lyrics);
+
+    fetch(currentTrack.lyrics)
+      .then((res) => {
         console.log('[LyricsView] Fetch response status:', res.status);
         return res.text();
       })
-      .then(text => {
-        console.log('[LyricsView] Fetched text length:', text.length, 'content:', text.substring(0, 100));
+      .then((text) => {
+        console.log(
+          '[LyricsView] Fetched text length:',
+          text.length,
+          'content:',
+          text.substring(0, 100)
+        );
         const parsed = parseLRC(text);
         console.log('[LyricsView] Parsed lyrics count:', parsed.length);
         return parsed;
       })
       .then(setLyrics)
-      .catch(err => {
+      .catch((err) => {
         console.error('[LyricsView] Failed to load lyrics:', err);
         setLyrics([]);
       });
@@ -85,7 +90,7 @@ export const LyricsView: React.FC = () => {
     <div className="h-full overflow-y-auto" ref={containerRef}>
       {/* 添加一些上下文空白，方便滚动 */}
       <div className="h-32" />
-      
+
       {lyrics.map((line, index) => {
         const isCurrent = index === currentIndex;
         const isPast = index < currentIndex;
@@ -94,9 +99,11 @@ export const LyricsView: React.FC = () => {
           <div
             key={index}
             className={`lyrics-line py-3 px-4 text-center cursor-pointer transition-all ${
-              isCurrent ? 'text-white text-xl font-bold scale-110' : 
-              isPast ? 'text-white/40 text-base' : 
-              'text-white/70 text-base'
+              isCurrent
+                ? 'text-white text-xl font-bold scale-110'
+                : isPast
+                  ? 'text-white/40 text-base'
+                  : 'text-white/70 text-base'
             }`}
             onClick={() => handleLineClick(line.time)}
           >
@@ -104,7 +111,7 @@ export const LyricsView: React.FC = () => {
           </div>
         );
       })}
-      
+
       {/* 添加一些上下文空白，方便滚动 */}
       <div className="h-32" />
     </div>
@@ -117,7 +124,7 @@ function parseLRC(lrcText: string): LyricLine[] {
   const lyrics: LyricLine[] = [];
   const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
 
-  lines.forEach(line => {
+  lines.forEach((line) => {
     const matches = [...line.matchAll(timeRegex)];
     if (matches.length > 0) {
       const match = matches[0];

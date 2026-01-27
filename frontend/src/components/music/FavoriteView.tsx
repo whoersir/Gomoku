@@ -12,11 +12,11 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
   const { favorites, toggleFavorite } = useFavorites();
 
   const favoriteTracks = useMemo(() => {
-    return tracks.filter(track => favorites.includes(track.id));
+    return tracks.filter((track) => favorites.includes(track.id));
   }, [tracks, favorites]);
 
   const handlePlayTrack = (track: MusicTrack) => {
-    const index = musicList.findIndex(t => t.id === track.id);
+    const index = musicList.findIndex((t) => t.id === track.id);
     if (index !== -1) {
       playTrack(index);
     }
@@ -33,8 +33,18 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
       {favoriteTracks.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            <svg
+              className="w-12 h-12 text-gray-600 mx-auto mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
             </svg>
             <p className="text-gray-400">还没有收藏任何歌曲</p>
             <p className="text-gray-500 text-sm mt-1">收藏你喜欢的歌曲吧</p>
@@ -54,9 +64,11 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
                 }`}
               >
                 {/* 播放状态指示 */}
-                <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
-                  isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
-                }`}>
+                <div
+                  className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
+                    isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
+                  }`}
+                >
                   {isPlaying ? (
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
@@ -78,7 +90,9 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
 
                 {/* 歌曲信息 */}
                 <div className="flex-1 min-w-0 text-left">
-                  <p className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}>
+                  <p
+                    className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}
+                  >
                     {track.title}
                   </p>
                   <p className="text-xs text-gray-400 truncate">{track.artist}</p>

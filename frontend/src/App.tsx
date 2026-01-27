@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
   ROOM_ID: 'gomoku_room_id',
   PLAYER_COLOR: 'gomoku_player_color',
   IS_SPECTATOR: 'gomoku_is_spectator',
-  IS_ADMIN: 'gomoku_is_admin'
+  IS_ADMIN: 'gomoku_is_admin',
 };
 
 function App() {
@@ -35,17 +35,19 @@ function App() {
     // 优先从 URL 参数读取页面状态
     const url = new URL(window.location.href);
     const pageParam = url.searchParams.get('page');
-    
+
     if (pageParam === 'rooms') return 'roomList';
     if (pageParam === 'game') return 'game';
     if (pageParam === 'connect') return 'connect';
-    
+
     // 如果 URL 没有参数，从 localStorage 读取
     const savedPage = localStorage.getItem(STORAGE_KEYS.PAGE_STATE);
     return (savedPage as PageState) || 'connect';
   });
   const [loading, setLoading] = useState(false);
-  const [playerName, setPlayerName] = useState(() => localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || '');
+  const [playerName, setPlayerName] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.PLAYER_NAME) || ''
+  );
   const [serverUrl, setServerUrl] = useState(() => {
     const savedUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL);
     // 如果保存的是内网地址，自动替换为动态地址
@@ -57,7 +59,9 @@ function App() {
     return savedUrl || '';
   });
   const [victoryModalVisible, setVictoryModalVisible] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true');
+  const [isAdmin, setIsAdmin] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true'
+  );
   const [showFullPlayer, setShowFullPlayer] = useState(false);
 
   const socket = useSocket();
@@ -66,7 +70,7 @@ function App() {
   // 更新 URL 的辅助函数
   const updateURL = (pageState: PageState, roomId?: string) => {
     const url = new URL(window.location.href);
-    
+
     switch (pageState) {
       case 'connect':
         url.searchParams.set('page', 'connect');
@@ -83,7 +87,7 @@ function App() {
         }
         break;
     }
-    
+
     window.history.pushState({}, '', url.toString());
   };
 
@@ -100,7 +104,7 @@ function App() {
       const isAdminAccount = ADMIN_ACCOUNTS.includes(name.toLowerCase());
       setIsAdmin(isAdminAccount);
       localStorage.setItem(STORAGE_KEYS.IS_ADMIN, String(isAdminAccount));
-      
+
       if (isAdminAccount) {
         logger.log('[App] Admin login successful for account:', name);
       }
@@ -117,7 +121,11 @@ function App() {
     }
   };
 
-  const handleJoinRoom = async (roomId: string, name: string, preferredColor?: 'black' | 'white') => {
+  const handleJoinRoom = async (
+    roomId: string,
+    name: string,
+    preferredColor?: 'black' | 'white'
+  ) => {
     setLoading(true);
     setPlayerName(name);
     const result = await socket.joinRoom(roomId, name, preferredColor);
@@ -174,7 +182,6 @@ function App() {
     setPlayerName(newNickname);
     localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, newNickname);
   };
-
 
   const handleMove = async (x: number, y: number) => {
     logger.log(`[App] Making move at (${x}, ${y}), playerColor:`, gameState.playerColor);
@@ -303,7 +310,11 @@ function App() {
 
   // Show victory modal when game is finished
   useEffect(() => {
-    if (gameState.gameState?.status === 'finished' && gameState.gameState.winner && !gameState.isSpectator) {
+    if (
+      gameState.gameState?.status === 'finished' &&
+      gameState.gameState.winner &&
+      !gameState.isSpectator
+    ) {
       setVictoryModalVisible(true);
     }
   }, [gameState.gameState?.status, gameState.gameState?.winner, gameState.isSpectator]);
@@ -410,272 +421,295 @@ function App() {
     };
   }, [gameState.gameState, gameState.isSpectator, playerName, socket]);
 
-  const isCurrentPlayer =
-    !!(gameState.gameState &&
-    gameState.playerColor ===
-    gameState.gameState.currentPlayer);
+  const isCurrentPlayer = !!(
+    gameState.gameState && gameState.playerColor === gameState.gameState.currentPlayer
+  );
 
   return (
     <div className={`w-full min-h-screen bg-dark-bg flex`}>
       <div className={`${page === 'connect' ? 'w-full' : 'flex-1'}`}>
-      
-      {page === 'connect' && (
-        <ConnectDialog
-          onConnect={handleConnect}
-          loading={loading}
-          error={socket.error}
-        />
-      )}
+        {page === 'connect' && (
+          <ConnectDialog onConnect={handleConnect} loading={loading} error={socket.error} />
+        )}
 
-      {page === 'roomList' && (
-        <div className="roomlist-page">
-          {/* 背景色彩光晕 - 与登录页面相同 */}
-          <div className="color"></div>
-          <div className="color"></div>
-          <div className="color"></div>
+        {page === 'roomList' && (
+          <div className="roomlist-page">
+            {/* 背景色彩光晕 - 与登录页面相同 */}
+            <div className="color"></div>
+            <div className="color"></div>
+            <div className="color"></div>
 
-          {/* 断开连接按钮 */}
-          <div style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '30px',
-            zIndex: 100,
-          }}>
-            <button
-              onClick={handleDisconnect}
+            {/* 断开连接按钮 */}
+            <div
               style={{
-                padding: '8px 20px',
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
-                borderRadius: '20px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '14px',
-                transition: 'all 0.3s',
-                transform: 'translateY(0px)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                e.currentTarget.style.transform = 'translateY(0)';
+                position: 'fixed',
+                bottom: '20px',
+                right: '30px',
+                zIndex: 100,
               }}
             >
-              断开连接
-            </button>
-          </div>
-
-          {/* 新的房间列表 - 使用玻璃卡片样式 */}
-          <RoomListNew
-            rooms={gameState.rooms}
-            onCreateRoom={handleCreateRoom}
-            onJoinRoom={handleJoinRoom}
-            onWatchRoom={handleWatchRoom}
-            onCloseRoom={handleCloseRoom}
-            onUpdateNickname={handleUpdateNickname}
-            loading={loading}
-            error={socket.error}
-            playerName={playerName}
-            playerSocketId={socket.socketId}
-            isAdmin={isAdmin}
-            playerInfo={localStorage.getItem('gomoku_player') ? JSON.parse(localStorage.getItem('gomoku_player')!) : undefined}
-          />
-        </div>
-      )}
-
-
-
-      {page === 'game' && gameState.gameState && (
-        <div className="min-h-screen relative" style={{ 
-          backgroundImage: 'url(/room-bg.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        }}>
-          {/* 顶部标题栏 - 水墨风格 */}
-          <div className="px-8 py-4 flex justify-between items-center" style={{
-            background: 'rgba(0, 0, 0, 0.3)',
-            backdropFilter: 'blur(5px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 50
-          }}>
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span className="text-3xl">🎯</span>
-                五子棋 - 天王山之战
-              </h1>
-              <div className="px-3 py-1 rounded-full text-xs font-medium" style={{
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                color: '#60a5fa'
-              }}>
-                房间: {gameState.gameState.roomId}
-              </div>
-            </div>
-            <div className="flex gap-3 items-center">
-              {!gameState.isSpectator && (
-                <button
-                  onClick={handleSwitchToSpectator}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
-                  style={{
-                    background: 'rgba(139, 92, 246, 0.15)',
-                    border: '1px solid rgba(139, 92, 246, 0.3)',
-                    color: '#a78bfa',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    opacity: loading ? 0.5 : 1
-                  }}
-                  disabled={loading}
-                  onMouseEnter={(e) => {
-                    if (!loading) {
-                      e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  👁️ 切换观战
-                </button>
-              )}
-
               <button
-                onClick={handleBackToRoomList}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
+                onClick={handleDisconnect}
                 style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#f87171'
+                  padding: '8px 20px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '20px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  transition: 'all 0.3s',
+                  transform: 'translateY(0px)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                🏠 返回主页
+                断开连接
               </button>
             </div>
+
+            {/* 新的房间列表 - 使用玻璃卡片样式 */}
+            <RoomListNew
+              rooms={gameState.rooms}
+              onCreateRoom={handleCreateRoom}
+              onJoinRoom={handleJoinRoom}
+              onWatchRoom={handleWatchRoom}
+              onCloseRoom={handleCloseRoom}
+              onUpdateNickname={handleUpdateNickname}
+              loading={loading}
+              error={socket.error}
+              playerName={playerName}
+              playerSocketId={socket.socketId}
+              isAdmin={isAdmin}
+              playerInfo={
+                localStorage.getItem('gomoku_player')
+                  ? JSON.parse(localStorage.getItem('gomoku_player')!)
+                  : undefined
+              }
+            />
           </div>
+        )}
 
-          {/* 主游戏区域 - 水墨风格布局 */}
-          <div className="px-8 py-6" style={{ minHeight: 'calc(100vh - 80px)' }}>
-            <div className="flex gap-6 justify-center items-start">
-              {/* 左侧面板 - 水墨风格 */}
-              <div className="flex-shrink-0 rounded-xl p-4" style={{
-                width: '260px',
-                height: 'auto',
-                background: 'rgba(0, 0, 0, 0.2)',
+        {page === 'game' && gameState.gameState && (
+          <div
+            className="min-h-screen relative"
+            style={{
+              backgroundImage: 'url(/room-bg.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }}
+          >
+            {/* 顶部标题栏 - 水墨风格 */}
+            <div
+              className="px-8 py-4 flex justify-between items-center"
+              style={{
+                background: 'rgba(0, 0, 0, 0.3)',
                 backdropFilter: 'blur(5px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-                marginTop: '170px'
-              }}>
-                <LeftSidePanel
-                  gameState={gameState.gameState}
-                  playerColor={gameState.playerColor}
-                  playerName={playerName}
-                  isSpectator={gameState.isSpectator}
-                />
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 50,
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <span className="text-3xl">🎯</span>
+                  五子棋 - 天王山之战
+                </h1>
+                <div
+                  className="px-3 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    color: '#60a5fa',
+                  }}
+                >
+                  房间: {gameState.gameState.roomId}
+                </div>
               </div>
+              <div className="flex gap-3 items-center">
+                {!gameState.isSpectator && (
+                  <button
+                    onClick={handleSwitchToSpectator}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
+                    style={{
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      color: '#a78bfa',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      opacity: loading ? 0.5 : 1,
+                    }}
+                    disabled={loading}
+                    onMouseEnter={(e) => {
+                      if (!loading) {
+                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    👁️ 切换观战
+                  </button>
+                )}
 
-              {/* 中间棋盘区域 - 水墨风格 */}
-              <div className="flex-shrink-0 flex flex-col items-center" style={{ gap: '20px' }}>
-                {/* 棋盘容器 - 水墨风格 */}
-                <div className="rounded-xl p-4" style={{
-                  background: 'rgba(0, 0, 0, 0.15)',
-                  backdropFilter: 'blur(5px)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
-                }}>
-                  <GameBoard
+                <button
+                  onClick={handleBackToRoomList}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  🏠 返回主页
+                </button>
+              </div>
+            </div>
+
+            {/* 主游戏区域 - 水墨风格布局 */}
+            <div className="px-8 py-6" style={{ minHeight: 'calc(100vh - 80px)' }}>
+              <div className="flex gap-6 justify-center items-start">
+                {/* 左侧面板 - 水墨风格 */}
+                <div
+                  className="flex-shrink-0 rounded-xl p-4"
+                  style={{
+                    width: '260px',
+                    height: 'auto',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(5px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                    marginTop: '170px',
+                  }}
+                >
+                  <LeftSidePanel
                     gameState={gameState.gameState}
                     playerColor={gameState.playerColor}
-                    isCurrentPlayer={isCurrentPlayer}
-                    onMove={handleMove}
-                    onGameFinished={() => {
-                      console.log('[App] Game finished, reloading leaderboard');
-                    }}
-                  />
-                </div>
-
-                {/* 观战面板 - 水墨风格 */}
-                <div className="rounded-xl p-4" style={{
-                  width: '750px',
-                  height: 'auto',
-                  maxHeight: '200px',
-                  overflow: 'hidden',
-                  background: 'rgba(0, 0, 0, 0.15)',
-                  backdropFilter: 'blur(5px)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
-                }}>
-                  <SpectatorPanel
-                    gameState={gameState.gameState}
+                    playerName={playerName}
                     isSpectator={gameState.isSpectator}
-                    onJoinAsPlayer={handleJoinAsPlayer}
-                    boardWidth="750px"
                   />
                 </div>
-              </div>
 
-              {/* 右侧面板 - 水墨风格 */}
-              <div className="flex-shrink-0 rounded-xl p-4" style={{
-                width: '281.33px',
-                height: '783.33px',
-                background: 'rgba(0, 0, 0, 0.2)',
-                backdropFilter: 'blur(5px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-                marginTop: '60px'
-              }}>
-                <RightSidePanel
-                  gameState={gameState.gameState}
-                  playerName={playerName}
-                  messages={gameState.messages}
-                  isSpectator={gameState.isSpectator}
-                  onSendMessage={handleSendMessage}
-                />
+                {/* 中间棋盘区域 - 水墨风格 */}
+                <div className="flex-shrink-0 flex flex-col items-center" style={{ gap: '20px' }}>
+                  {/* 棋盘容器 - 水墨风格 */}
+                  <div
+                    className="rounded-xl p-4"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      backdropFilter: 'blur(5px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                    }}
+                  >
+                    <GameBoard
+                      gameState={gameState.gameState}
+                      playerColor={gameState.playerColor}
+                      isCurrentPlayer={isCurrentPlayer}
+                      onMove={handleMove}
+                      onGameFinished={() => {
+                        console.log('[App] Game finished, reloading leaderboard');
+                      }}
+                    />
+                  </div>
+
+                  {/* 观战面板 - 水墨风格 */}
+                  <div
+                    className="rounded-xl p-4"
+                    style={{
+                      width: '750px',
+                      height: 'auto',
+                      maxHeight: '200px',
+                      overflow: 'hidden',
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      backdropFilter: 'blur(5px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                    }}
+                  >
+                    <SpectatorPanel
+                      gameState={gameState.gameState}
+                      isSpectator={gameState.isSpectator}
+                      onJoinAsPlayer={handleJoinAsPlayer}
+                      boardWidth="750px"
+                    />
+                  </div>
+                </div>
+
+                {/* 右侧面板 - 水墨风格 */}
+                <div
+                  className="flex-shrink-0 rounded-xl p-4"
+                  style={{
+                    width: '281.33px',
+                    height: '783.33px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(5px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                    marginTop: '60px',
+                  }}
+                >
+                  <RightSidePanel
+                    gameState={gameState.gameState}
+                    playerName={playerName}
+                    messages={gameState.messages}
+                    isSpectator={gameState.isSpectator}
+                    onSendMessage={handleSendMessage}
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Victory Modal */}
-      {victoryModalVisible && gameState.gameState && (
-        <VictoryModal
-          winner={gameState.gameState.winner || null}
-          playerColor={gameState.playerColor}
-          onRestart={handleRestartGame}
-          onClose={() => setVictoryModalVisible(false)}
-        />
-      )}
-
-      {/* Music Player Components - Show on all pages */}
-      <>
-        {/* Mini Player - Fixed at bottom right */}
-        <MiniPlayer onOpenFullPlayer={() => {
-          console.log('[App] Opening full player, current showFullPlayer:', showFullPlayer);
-          setShowFullPlayer(true);
-        }} />
-
-        {/* Full Player - Modal */}
-        {showFullPlayer && (
-          <FullPlayer onClose={() => {
-            console.log('[App] Closing full player');
-            setShowFullPlayer(false);
-          }} />
         )}
-      </>
+
+        {/* Victory Modal */}
+        {victoryModalVisible && gameState.gameState && (
+          <VictoryModal
+            winner={gameState.gameState.winner || null}
+            playerColor={gameState.playerColor}
+            onRestart={handleRestartGame}
+            onClose={() => setVictoryModalVisible(false)}
+          />
+        )}
+
+        {/* Music Player Components - Show on all pages */}
+        <>
+          {/* Mini Player - Fixed at bottom right */}
+          <MiniPlayer
+            onOpenFullPlayer={() => {
+              console.log('[App] Opening full player, current showFullPlayer:', showFullPlayer);
+              setShowFullPlayer(true);
+            }}
+          />
+
+          {/* Full Player - Modal */}
+          {showFullPlayer && (
+            <FullPlayer
+              onClose={() => {
+                console.log('[App] Closing full player');
+                setShowFullPlayer(false);
+              }}
+            />
+          )}
+        </>
       </div>
     </div>
   );

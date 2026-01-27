@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { parseFile } from 'music-metadata';
 import os from 'os';
+import { log } from '../utils/logger';
 
 interface LocalMusicTrack {
   id: string;
@@ -63,7 +64,7 @@ class LocalMusicService {
 
     // 检查是否禁用本地音乐
     if (this.disabled) {
-      console.log('[LocalMusic] ⚠️  本地音乐库已禁用');
+      log.warn('[LocalMusic] ⚠️  本地音乐库已禁用');
       this.initialized = true;
       return;
     }
@@ -72,12 +73,12 @@ class LocalMusicService {
       process.stdout.write('[LocalMusic] loading (0)...\r');
       const startTime = Date.now();
       const allMusic = await this.getMusicList();
-      const loadTime = Date.now() - startTime;
+      Date.now() - startTime;
       process.stdout.write(`[LocalMusic] loading (${allMusic.length})....done\n`);
       this.initialized = true;
     } catch (error) {
       process.stdout.write(`[LocalMusic] error\n`);
-      console.error('[LocalMusic] 初始化错误:', error);
+      log.error('[LocalMusic] 初始化错误:', error);
     }
   }
 
@@ -90,7 +91,7 @@ class LocalMusicService {
     try {
       // 检查目录是否存在
       if (!fs.existsSync(MUSIC_DIR)) {
-        console.warn(`[LocalMusic] ⚠️  音乐目录不存在: ${MUSIC_DIR}`);
+        log.warn(`[LocalMusic] ⚠️  音乐目录不存在: ${MUSIC_DIR}`);
         return [];
       }
 
@@ -98,7 +99,7 @@ class LocalMusicService {
       try {
         fs.accessSync(MUSIC_DIR, fs.constants.R_OK);
       } catch (accessError) {
-        console.error(`[LocalMusic] ❌ 无法访问音乐目录: ${MUSIC_DIR}`, accessError);
+        log.error(`[LocalMusic] ❌ 无法访问音乐目录: ${MUSIC_DIR}`, accessError);
         return [];
       }
 
@@ -134,8 +135,8 @@ class LocalMusicService {
                     const base64Image = Buffer.from(picture.data).toString('base64');
                     coverUrl = `data:${picture.format};base64,${base64Image}`;
                   } catch (imgErr) {
-                  // 封面提取失败，使用默认封面
-                }
+                    // 封面提取失败，使用默认封面
+                  }
                 }
 
                 const encodedPath = encodeURIComponent(filePath);
@@ -156,7 +157,7 @@ class LocalMusicService {
                   duration: Math.floor((metadata.format?.duration || 0) * 1000),
                   url: streamUrl,
                   cover: coverUrl,
-                  lrc: lrcUrl
+                  lrc: lrcUrl,
                 };
 
                 if (tracks.length % 20 === 0) {
@@ -197,7 +198,7 @@ class LocalMusicService {
    */
   private async getMusicList(): Promise<LocalMusicTrack[]> {
     const now = Date.now();
-    
+
     // 如果缓存未过期，使用缓存
     if (this.musicCache.length > 0 && now - this.lastCacheTime < MUSIC_CACHE_TIME) {
       return this.musicCache;
@@ -218,7 +219,7 @@ class LocalMusicService {
   ): Promise<LocalMusicTrack[]> {
     try {
       const allMusic = await this.getMusicList();
-      
+
       // 按 A-Z 排序
       const sortedMusic = allMusic.sort((a, b) => {
         switch (sortBy) {
@@ -232,10 +233,10 @@ class LocalMusicService {
             return 0;
         }
       });
-      
+
       return sortedMusic.slice(0, limit);
     } catch (error) {
-      console.error('[LocalMusic] 获取所有音乐失败:', error);
+      log.error('[LocalMusic] 获取所有音乐失败:', error);
       return [];
     }
   }
@@ -259,15 +260,16 @@ class LocalMusicService {
       const lowerKeyword = keyword.toLowerCase();
 
       // 搜索标题、艺术家、专辑
-      const results = allMusic.filter(track =>
-        track.title.toLowerCase().includes(lowerKeyword) ||
-        track.artist.toLowerCase().includes(lowerKeyword) ||
-        track.album.toLowerCase().includes(lowerKeyword)
+      const results = allMusic.filter(
+        (track) =>
+          track.title.toLowerCase().includes(lowerKeyword) ||
+          track.artist.toLowerCase().includes(lowerKeyword) ||
+          track.album.toLowerCase().includes(lowerKeyword)
       );
 
       return results.slice(0, limit);
     } catch (error) {
-      console.error('[LocalMusic] 搜索错误:', error);
+      log.error('[LocalMusic] 搜索错误:', error);
       return [];
     }
   }
@@ -290,7 +292,8 @@ class LocalMusicService {
       musicDir: MUSIC_DIR,
       cacheSize: this.musicCache.length,
       lastCacheTime: this.lastCacheTime,
-      cacheExpired: this.musicCache.length > 0 && (Date.now() - this.lastCacheTime) > MUSIC_CACHE_TIME
+      cacheExpired:
+        this.musicCache.length > 0 && Date.now() - this.lastCacheTime > MUSIC_CACHE_TIME,
     };
   }
 
@@ -302,7 +305,7 @@ class LocalMusicService {
       const allMusic = await this.getMusicList();
       return allMusic.slice(0, limit);
     } catch (error) {
-      console.error('[LocalMusic] 获取所有音乐失败:', error);
+      log.error('[LocalMusic] 获取所有音乐失败:', error);
       return [];
     }
   }

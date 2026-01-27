@@ -37,25 +37,19 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
 
   return (
     <div className="card-base space-y-4">
-      <div className="text-lg font-semibold">
-        {isSpectator ? '👁️ 观战信息' : '玩家信息'}
-      </div>
+      <div className="text-lg font-semibold">{isSpectator ? '👁️ 观战信息' : '玩家信息'}</div>
 
       {/* Spectator Badge */}
       {isSpectator && (
         <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/50">
-          <div className="text-sm text-blue-400">
-            👁️ 你正在实时观战 - {playerName}
-          </div>
+          <div className="text-sm text-blue-400">👁️ 你正在实时观战 - {playerName}</div>
         </div>
       )}
 
       {/* Player Left Notification */}
       {playerLeftNotice && (
         <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50 animate-pulse">
-          <div className="text-sm text-red-400">
-            ⚠️ {playerLeftNotice.playerName} 已离开游戏
-          </div>
+          <div className="text-sm text-red-400">⚠️ {playerLeftNotice.playerName} 已离开游戏</div>
         </div>
       )}
 
@@ -72,9 +66,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           <span className="font-medium">黑棋</span>
           {playerColor === 1 && <span className="text-xs text-primary ml-auto">(你)</span>}
         </div>
-        <div className="text-sm text-dark-text-secondary">
-          {blackPlayer?.name || playerName}
-        </div>
+        <div className="text-sm text-dark-text-secondary">{blackPlayer?.name || playerName}</div>
       </div>
 
       {/* White Player */}
@@ -91,9 +83,11 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
           {playerColor === 2 && <span className="text-xs text-primary ml-auto">(你)</span>}
         </div>
         <div className="text-sm text-dark-text-secondary">
-          {whitePlayer?.name && whitePlayer.name !== 'Waiting...' 
-            ? whitePlayer.name 
-            : (isWaiting ? '⏳ 等待加入...' : whitePlayer?.name || '未加入')}
+          {whitePlayer?.name && whitePlayer.name !== 'Waiting...'
+            ? whitePlayer.name
+            : isWaiting
+              ? '⏳ 等待加入...'
+              : whitePlayer?.name || '未加入'}
         </div>
       </div>
 
@@ -101,9 +95,7 @@ export const PlayerPanel: React.FC<PlayerPanelProps> = ({
       <div className="pt-3 border-t border-dark-text-tertiary/20">
         <div className="text-xs text-dark-text-tertiary mb-1">游戏状态</div>
         <div className="flex justify-between items-center">
-          <span className="capitalize">
-            {isWaiting ? '等待中' : gameState.status}
-          </span>
+          <span className="capitalize">{isWaiting ? '等待中' : gameState.status}</span>
           <span className="text-xs bg-dark-bg-tertiary px-2 py-1 rounded">
             {gameState.moves?.length || 0} 步
           </span>

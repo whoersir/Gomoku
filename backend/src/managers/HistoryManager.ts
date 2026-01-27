@@ -25,16 +25,22 @@ export class HistoryManager {
     await fs.appendFile(this.historyFile, line);
   }
 
-  async getRecords(limit: number = 100, offset: number = 0): Promise<{ total: number; records: HistoryRecord[] }> {
+  async getRecords(
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<{ total: number; records: HistoryRecord[] }> {
     try {
       const content = await fs.readFile(this.historyFile, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.length > 0);
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
       const total = lines.length;
 
       const records = lines
         .slice(Math.max(0, total - offset - limit), total - offset)
         .reverse()
-        .map(line => JSON.parse(line));
+        .map((line) => JSON.parse(line));
 
       return { total, records };
     } catch {
@@ -45,12 +51,15 @@ export class HistoryManager {
   async getRecordsByPlayer(playerName: string, limit: number = 100): Promise<HistoryRecord[]> {
     try {
       const content = await fs.readFile(this.historyFile, 'utf-8');
-      const lines = content.trim().split('\n').filter(line => line.length > 0);
+      const lines = content
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
 
       const records = lines
-        .map(line => JSON.parse(line))
+        .map((line) => JSON.parse(line))
         .filter(
-          record =>
+          (record) =>
             record.blackPlayer.name === playerName || record.whitePlayer.name === playerName
         )
         .slice(-limit);

@@ -36,7 +36,9 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
     try {
       // 添加缓存破坏参数以确保获取最新数据
       const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/leaderboard?limit=10&timestamp=${Date.now()}`);
+      const response = await fetch(
+        `${backendUrl}/api/leaderboard?limit=10&timestamp=${Date.now()}`
+      );
       if (response.ok) {
         const data = await response.json();
         setLeaderboard(data);
@@ -93,10 +95,13 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
               <div
                 key={player.id}
                 className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-                  index === 0 ? 'glass-light border-yellow-500/30' :
-                  index === 1 ? 'glass-light border-gray-400/30' :
-                  index === 2 ? 'glass-light border-orange-500/30' :
-                  'glass-light hover:bg-white/5'
+                  index === 0
+                    ? 'glass-light border-yellow-500/30'
+                    : index === 1
+                      ? 'glass-light border-gray-400/30'
+                      : index === 2
+                        ? 'glass-light border-orange-500/30'
+                        : 'glass-light hover:bg-white/5'
                 }`}
               >
                 <span className="font-bold w-8">{getRankEmoji(index)}</span>
@@ -152,15 +157,20 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
               <div
                 key={player.id}
                 className={`grid grid-cols-12 gap-2 text-sm py-3 px-3 rounded-lg transition-all hover:scale-[1.01] ${
-                  index === 0 ? 'glass-light border-yellow-500/30' :
-                  index === 1 ? 'glass-light border-gray-400/30' :
-                  index === 2 ? 'glass-light border-orange-500/30' :
-                  'glass-light hover:bg-white/5'
+                  index === 0
+                    ? 'glass-light border-yellow-500/30'
+                    : index === 1
+                      ? 'glass-light border-gray-400/30'
+                      : index === 2
+                        ? 'glass-light border-orange-500/30'
+                        : 'glass-light hover:bg-white/5'
                 }`}
               >
                 <div className="col-span-1 font-bold text-lg">{getRankEmoji(index)}</div>
                 <div className="col-span-3 font-medium truncate text-glass">{player.name}</div>
-                <div className="col-span-2 text-center font-bold text-primary text-glass-strong">{player.score}</div>
+                <div className="col-span-2 text-center font-bold text-primary text-glass-strong">
+                  {player.score}
+                </div>
                 <div className="col-span-2 text-center text-dark-text-secondary">
                   {getWinRate(player)}
                 </div>

@@ -30,7 +30,16 @@ const GameBoardInternal: React.FC<GameBoardProps> = ({
   }, [gameState?.status, onGameFinished]);
 
   const handleCellClick = (x: number, y: number) => {
-    console.log(`[GameBoard] Cell clicked (${x}, ${y}), isCurrentPlayer:`, isCurrentPlayer, 'playerColor:', playerColor, 'currentPlayer:', gameState?.currentPlayer, 'isGameOver:', isGameOver);
+    console.log(
+      `[GameBoard] Cell clicked (${x}, ${y}), isCurrentPlayer:`,
+      isCurrentPlayer,
+      'playerColor:',
+      playerColor,
+      'currentPlayer:',
+      gameState?.currentPlayer,
+      'isGameOver:',
+      isGameOver
+    );
     if (!isCurrentPlayer || !gameState || isGameOver) return;
     onMove(x, y);
   };
@@ -128,7 +137,11 @@ const GameBoardInternal: React.FC<GameBoardProps> = ({
               width={cellSize}
               height={cellSize}
               fill="transparent"
-              className={isCurrentPlayer ? 'cursor-pointer hover:bg-blue-400 hover:opacity-20' : 'cursor-not-allowed'}
+              className={
+                isCurrentPlayer
+                  ? 'cursor-pointer hover:bg-blue-400 hover:opacity-20'
+                  : 'cursor-not-allowed'
+              }
               onClick={() => handleCellClick(x, y)}
               onMouseEnter={(e) => {
                 if (isCurrentPlayer) {
@@ -150,7 +163,10 @@ const GameBoardInternal: React.FC<GameBoardProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Game status above board */}
-      <div className="text-xl text-center text-black font-bold rounded-lg px-6 py-3" style={{ backgroundColor: 'transparent', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
+      <div
+        className="text-xl text-center text-black font-bold rounded-lg px-6 py-3"
+        style={{ backgroundColor: 'transparent', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
+      >
         {gameState?.status === 'waiting'
           ? '⏳ 等待第二名玩家加入...'
           : gameState?.status === 'finished'
@@ -175,9 +191,10 @@ const GameBoardInternal: React.FC<GameBoardProps> = ({
       >
         {renderBoard()}
         {renderClickAreas()}
-        {gameState && Array.from({ length: boardSize }, (_, y) =>
-          Array.from({ length: boardSize }, (_, x) => renderStone(x, y))
-        )}
+        {gameState &&
+          Array.from({ length: boardSize }, (_, y) =>
+            Array.from({ length: boardSize }, (_, x) => renderStone(x, y))
+          )}
       </svg>
     </div>
   );

@@ -32,7 +32,7 @@ export const PlayerNameModal: React.FC<PlayerNameModalProps> = ({
 
   const handleConfirm = () => {
     const name = showPlayerName ? playerName.trim() : initialPlayerName;
-    
+
     if (name) {
       if (mode === 'create' && !roomName.trim()) {
         return; // 房间名称不能为空
@@ -59,15 +59,17 @@ export const PlayerNameModal: React.FC<PlayerNameModalProps> = ({
     create: '创建房间',
   };
 
-  const placeholders = showPlayerName ? {
-    join: '输入你的昵称加入房间...',
-    watch: '输入你的昵称开始观战...',
-    create: '输入你的昵称创建房间...',
-  } : {
-    join: '加入房间',
-    watch: '开始观战',
-    create: '创建房间',
-  };
+  const placeholders = showPlayerName
+    ? {
+        join: '输入你的昵称加入房间...',
+        watch: '输入你的昵称开始观战...',
+        create: '输入你的昵称创建房间...',
+      }
+    : {
+        join: '加入房间',
+        watch: '开始观战',
+        create: '创建房间',
+      };
 
   const buttonLabels = {
     join: '加入房间',
@@ -122,7 +124,11 @@ export const PlayerNameModal: React.FC<PlayerNameModalProps> = ({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={(showPlayerName && !playerName.trim()) || (mode === 'create' && !roomName.trim()) || loading}
+            disabled={
+              (showPlayerName && !playerName.trim()) ||
+              (mode === 'create' && !roomName.trim()) ||
+              loading
+            }
             className="btn-primary px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '处理中...' : buttonLabels[mode]}

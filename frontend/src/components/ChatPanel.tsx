@@ -7,11 +7,7 @@ interface ChatPanelProps {
   onSendMessage: (message: string) => void;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({
-  messages,
-  playerName,
-  onSendMessage,
-}) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, playerName, onSendMessage }) => {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,9 +43,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto mb-3 space-y-2">
         {messages.length === 0 ? (
-          <div className="text-center text-dark-text-tertiary text-sm py-8">
-            暂无消息
-          </div>
+          <div className="text-center text-dark-text-tertiary text-sm py-8">暂无消息</div>
         ) : (
           messages.map((msg, index) => (
             <div key={index} className="text-sm">

@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { log } from '../utils/logger';
 
 export interface PlayerData {
   id: string;
@@ -25,11 +26,11 @@ export class PlayerManager {
       if (fs.existsSync(this.playersDataPath)) {
         const data = fs.readFileSync(this.playersDataPath, 'utf-8');
         const playersArray: PlayerData[] = JSON.parse(data);
-        this.players = new Map(playersArray.map(p => [p.id, p]));
-        console.log(`[PlayerManager] Loaded ${this.players.size} players`);
+        this.players = new Map(playersArray.map((p) => [p.id, p]));
+        log.info(`[PlayerManager] Loaded ${this.players.size} players`);
       }
     } catch (error) {
-      console.error('[PlayerManager] Failed to load players:', error);
+      log.error('[PlayerManager] Failed to load players:', error);
       this.players = new Map();
     }
   }
@@ -38,9 +39,9 @@ export class PlayerManager {
     try {
       const playersArray = Array.from(this.players.values());
       fs.writeFileSync(this.playersDataPath, JSON.stringify(playersArray, null, 2));
-      console.log(`[PlayerManager] Saved ${this.players.size} players`);
+      log.info(`[PlayerManager] Saved ${this.players.size} players`);
     } catch (error) {
-      console.error('[PlayerManager] Failed to save players:', error);
+      log.error('[PlayerManager] Failed to save players:', error);
     }
   }
 
@@ -88,7 +89,9 @@ export class PlayerManager {
     }
 
     this.savePlayers();
-    console.log(`[PlayerManager] Recorded game result - Winner: ${winner?.name}, Loser: ${loser?.name}`);
+    log.info(
+      `[PlayerManager] Recorded game result - Winner: ${winner?.name}, Loser: ${loser?.name}`
+    );
   }
 
   getLeaderboard(limit: number = 10): PlayerData[] {

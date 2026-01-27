@@ -28,8 +28,14 @@ export const useGameState = () => {
   const joinedRoom = useCallback((color: 1 | 2, initialGameState?: GameState) => {
     console.log('[useGameState] joinedRoom called with color:', color);
     console.log('[useGameState] initialGameState:', initialGameState);
-    console.log('[useGameState] initialGameState.players?.black?.stats:', initialGameState?.players?.black?.stats);
-    console.log('[useGameState] initialGameState.players?.white?.stats:', initialGameState?.players?.white?.stats);
+    console.log(
+      '[useGameState] initialGameState.players?.black?.stats:',
+      initialGameState?.players?.black?.stats
+    );
+    console.log(
+      '[useGameState] initialGameState.players?.white?.stats:',
+      initialGameState?.players?.white?.stats
+    );
     setPlayerColor(color);
     setIsSpectator(false); // 加入房间时不是观战
     if (initialGameState) {
@@ -89,29 +95,31 @@ export const useGameState = () => {
     };
 
     const handlePlayerLeft = (data: PlayerLeftEvent) => {
-      console.log(`[useGameState] Player left: ${data.playerName} (${data.playerId}), color: ${data.playerColor}`);
+      console.log(
+        `[useGameState] Player left: ${data.playerName} (${data.playerId}), color: ${data.playerColor}`
+      );
       setPlayerLeftNotice(data);
-      
+
       // 更新 gameState，清空离开玩家的信息
-      setGameState(prev => {
+      setGameState((prev) => {
         if (!prev) return prev;
-        
+
         // 根据离开玩家的颜色或ID清空对应的玩家信息
         const newPlayers = { ...prev.players };
-        
+
         if (data.playerColor === 1 || prev.players?.black?.id === data.playerId) {
           newPlayers.black = { id: '', name: 'Waiting...' };
         } else if (data.playerColor === 2 || prev.players?.white?.id === data.playerId) {
           newPlayers.white = { id: '', name: 'Waiting...' };
         }
-        
+
         return {
           ...prev,
           status: 'waiting',
           players: newPlayers,
         };
       });
-      
+
       // 清除通知，3秒后
       setTimeout(() => setPlayerLeftNotice(null), 3000);
     };
@@ -122,7 +130,7 @@ export const useGameState = () => {
       console.log(`[useGameState] roomInfo.blackPlayer:`, roomInfo.blackPlayer);
       console.log(`[useGameState] roomInfo.whitePlayer:`, roomInfo.whitePlayer);
 
-      setGameState(prev => {
+      setGameState((prev) => {
         console.log('[useGameState] Current gameState before roomInfo update:', prev);
 
         if (!prev) {
@@ -131,7 +139,9 @@ export const useGameState = () => {
           const newState = {
             roomId: roomInfo.roomId,
             roomName: roomInfo.roomName || '',
-            board: Array(15).fill(null).map(() => Array(15).fill(0)),
+            board: Array(15)
+              .fill(null)
+              .map(() => Array(15).fill(0)),
             currentPlayer: 1 as const,
             status: roomInfo.status,
             moves: [],

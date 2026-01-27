@@ -3,10 +3,10 @@ export class WinChecker {
 
   checkWin(board: number[][], lastX: number, lastY: number, player: number): boolean {
     const directions = [
-      { dx: 1, dy: 0 },   // horizontal
-      { dx: 0, dy: 1 },   // vertical
-      { dx: 1, dy: 1 },   // diagonal \
-      { dx: 1, dy: -1 },  // diagonal /
+      { dx: 1, dy: 0 }, // horizontal
+      { dx: 0, dy: 1 }, // vertical
+      { dx: 1, dy: 1 }, // diagonal \
+      { dx: 1, dy: -1 }, // diagonal /
     ];
 
     for (const { dx, dy } of directions) {

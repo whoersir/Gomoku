@@ -1,13 +1,19 @@
 import { Board } from './Board';
 import { WinChecker } from './WinChecker';
 import { GameState } from '../types/game';
+import { log } from '../utils/logger';
 
 export class GameEngine {
   private board: Board;
   private winChecker: WinChecker;
   private gameState: GameState;
 
-  constructor(roomId: string, roomName: string, blackPlayer: { id: string; name: string }, whitePlayer: { id: string; name: string }) {
+  constructor(
+    roomId: string,
+    roomName: string,
+    blackPlayer: { id: string; name: string },
+    whitePlayer: { id: string; name: string }
+  ) {
     this.board = new Board(15);
     this.winChecker = new WinChecker();
     this.gameState = {
@@ -26,18 +32,26 @@ export class GameEngine {
     };
   }
 
-  makeMove(x: number, y: number, playerId: string): { success: boolean; message?: string; gameState?: GameState } {
+  makeMove(
+    x: number,
+    y: number,
+    playerId: string
+  ): { success: boolean; message?: string; gameState?: GameState } {
     // Validate player
     const playerColor = this.getPlayerColor(playerId);
-    console.log(`[GameEngine.makeMove] playerId: ${playerId}, playerColor: ${playerColor}, currentPlayer: ${this.gameState.currentPlayer}, blackId: ${this.gameState.players.black.id}, whiteId: ${this.gameState.players.white.id}`);
-    
+    log.debug(
+      `[GameEngine.makeMove] playerId: ${playerId}, playerColor: ${playerColor}, currentPlayer: ${this.gameState.currentPlayer}, blackId: ${this.gameState.players.black.id}, whiteId: ${this.gameState.players.white.id}`
+    );
+
     if (!playerColor) {
-      console.log(`[GameEngine.makeMove] Player not found`);
+      log.debug(`[GameEngine.makeMove] Player not found`);
       return { success: false, message: 'Player not found in this game' };
     }
 
     if (playerColor !== this.gameState.currentPlayer) {
-      console.log(`[GameEngine.makeMove] Not player's turn. playerColor: ${playerColor}, currentPlayer: ${this.gameState.currentPlayer}`);
+      log.debug(
+        `[GameEngine.makeMove] Not player's turn. playerColor: ${playerColor}, currentPlayer: ${this.gameState.currentPlayer}`
+      );
       return { success: false, message: 'Not your turn' };
     }
 

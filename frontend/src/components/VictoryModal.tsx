@@ -31,11 +31,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <div className="text-6xl mb-4">😢</div>
           )}
           <h2 className="text-3xl font-bold mb-2">
-            {winner === 'draw' 
-              ? '平局' 
-              : isWinner 
-                ? '恭喜胜利！' 
-                : '对局结束'}
+            {winner === 'draw' ? '平局' : isWinner ? '恭喜胜利！' : '对局结束'}
           </h2>
           <p className="text-dark-text-secondary text-sm">
             {winner === 'draw'
@@ -47,16 +43,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={onRestart}
-            className="btn-primary px-6 py-3 text-lg"
-          >
+          <button onClick={onRestart} className="btn-primary px-6 py-3 text-lg">
             🔄 重新对局
           </button>
-          <button
-            onClick={onClose}
-            className="btn-secondary px-6 py-3 text-lg"
-          >
+          <button onClick={onClose} className="btn-secondary px-6 py-3 text-lg">
             关闭
           </button>
         </div>

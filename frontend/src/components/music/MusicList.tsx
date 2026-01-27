@@ -28,15 +28,15 @@ export const MusicList: React.FC = () => {
               key={track.id}
               onClick={() => playTrack(index)}
               className={`w-full p-4 flex items-center gap-4 transition-colors ${
-                isCurrentTrack
-                  ? 'bg-blue-500/20 hover:bg-blue-500/30'
-                  : 'hover:bg-gray-700/50'
+                isCurrentTrack ? 'bg-blue-500/20 hover:bg-blue-500/30' : 'hover:bg-gray-700/50'
               }`}
             >
               {/* 序号 */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isCurrentTrack ? 'bg-blue-500' : 'bg-gray-700'
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  isCurrentTrack ? 'bg-blue-500' : 'bg-gray-700'
+                }`}
+              >
                 {isCurrentTrack ? (
                   <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
@@ -58,9 +58,11 @@ export const MusicList: React.FC = () => {
 
               {/* 歌曲信息 */}
               <div className="flex-1 min-w-0 text-left">
-                <p className={`font-medium truncate ${
-                  isCurrentTrack ? 'text-blue-400' : 'text-white'
-                }`}>
+                <p
+                  className={`font-medium truncate ${
+                    isCurrentTrack ? 'text-blue-400' : 'text-white'
+                  }`}
+                >
                   {track.title}
                 </p>
                 <p className="text-sm text-gray-400 truncate">{track.artist}</p>
@@ -76,9 +78,18 @@ export const MusicList: React.FC = () => {
               {/* 当前播放指示器 */}
               {isCurrentTrack && (
                 <div className="flex gap-1 items-end">
-                  <div className="w-1 bg-blue-500 rounded animate-pulse" style={{ height: '8px' }}></div>
-                  <div className="w-1 bg-blue-500 rounded animate-pulse" style={{ height: '12px', animationDelay: '0.1s' }}></div>
-                  <div className="w-1 bg-blue-500 rounded animate-pulse" style={{ height: '6px', animationDelay: '0.2s' }}></div>
+                  <div
+                    className="w-1 bg-blue-500 rounded animate-pulse"
+                    style={{ height: '8px' }}
+                  ></div>
+                  <div
+                    className="w-1 bg-blue-500 rounded animate-pulse"
+                    style={{ height: '12px', animationDelay: '0.1s' }}
+                  ></div>
+                  <div
+                    className="w-1 bg-blue-500 rounded animate-pulse"
+                    style={{ height: '6px', animationDelay: '0.2s' }}
+                  ></div>
                 </div>
               )}
             </button>

@@ -22,19 +22,17 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
 
   const artistGroups = useMemo(() => {
     let result = groupTracksByArtist(tracks);
-    
+
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(group =>
-        group.artist.toLowerCase().includes(query)
-      );
+      result = result.filter((group) => group.artist.toLowerCase().includes(query));
     }
 
     return result;
   }, [tracks, searchQuery]);
 
   const handlePlayTrack = (track: MusicTrack) => {
-    const index = musicList.findIndex(t => t.id === track.id);
+    const index = musicList.findIndex((t) => t.id === track.id);
     if (index !== -1) {
       playTrack(index);
     }
@@ -76,8 +74,18 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
       {artistGroups.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <svg className="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="w-12 h-12 text-gray-600 mx-auto mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <p className="text-gray-400">未找到匹配的艺术家</p>
           </div>
@@ -119,7 +127,12 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                    />
                   </svg>
                 </button>
 
@@ -138,9 +151,11 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
                             isPlaying ? 'bg-blue-500/20' : 'hover:bg-white/10'
                           }`}
                         >
-                          <div className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
-                            isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
-                          }`}>
+                          <div
+                            className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-xs ${
+                              isPlaying ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'
+                            }`}
+                          >
                             {isPlaying ? (
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
@@ -160,7 +175,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
                           />
 
                           <div className="flex-1 min-w-0 text-left">
-                            <p className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}>
+                            <p
+                              className={`font-medium truncate text-sm ${isPlaying ? 'text-blue-400' : 'text-white'}`}
+                            >
                               {track.title}
                             </p>
                             <p className="text-xs text-gray-400 truncate">{track.album}</p>
@@ -179,7 +196,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
                           >
                             <svg
                               className={`w-4 h-4 transition-colors ${
-                                favorite ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-500'
+                                favorite
+                                  ? 'text-red-500 fill-red-500'
+                                  : 'text-gray-400 hover:text-red-500'
                               }`}
                               fill={favorite ? 'currentColor' : 'none'}
                               stroke="currentColor"

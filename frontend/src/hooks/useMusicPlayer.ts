@@ -114,10 +114,10 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
         // 使用新的排序 API 获取音乐列表
         const allMusic = await musicService.getAllMusicSorted('title', 999999);
         setMusicList(allMusic);
-        
+
         // 如果有预设的当前播放位置，设置当前歌曲
         if (currentTrack) {
-          const index = allMusic.findIndex(t => t.id === currentTrack.id);
+          const index = allMusic.findIndex((t) => t.id === currentTrack.id);
           if (index !== -1) {
             setCurrentTrack(allMusic[index]);
             setCurrentTrackIndex(index);
@@ -143,11 +143,11 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
       const response = await fetch('/api/music/refresh', {
         method: 'POST',
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         console.log('[useMusicPlayer] 后端音乐库刷新成功:', result.count);
-        
+
         // 直接使用刷新API返回的音乐列表
         const allMusic = result.data.map((track: any) => ({
           id: track.id,
@@ -156,14 +156,14 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
           album: track.album,
           duration: track.duration,
           url: track.url,
-          cover: track.cover || 'https://picsum.photos/64/64'
+          cover: track.cover || 'https://picsum.photos/64/64',
         }));
-        
+
         setMusicList(allMusic);
-        
+
         // 如果有当前播放的歌曲，重新设置
         if (currentTrack) {
-          const index = allMusic.findIndex(t => t.id === currentTrack.id);
+          const index = allMusic.findIndex((t) => t.id === currentTrack.id);
           if (index !== -1) {
             setCurrentTrack(allMusic[index]);
             setCurrentTrackIndex(index);
@@ -193,47 +193,51 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   }, [currentTrack, isPlaying]);
 
   // 播放指定索引的曲目
-  const playTrack = useCallback((index: number) => {
-    if (index < 0 || index >= musicList.length || !audioRef.current) return;
+  const playTrack = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= musicList.length || !audioRef.current) return;
 
-    setIsLoading(true);
-    const track = musicList[index];
+      setIsLoading(true);
+      const track = musicList[index];
 
-    console.log('[useMusicPlayer] Playing track:', track);
-    console.log('[useMusicPlayer] Track URL:', track.url);
+      console.log('[useMusicPlayer] Playing track:', track);
+      console.log('[useMusicPlayer] Track URL:', track.url);
 
-    // 重置音频元素
-    audioRef.current.pause();
-    audioRef.current.currentTime = 0;
+      // 重置音频元素
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
 
-    // 设置新的音频源
-    audioRef.current.src = track.url;
+      // 设置新的音频源
+      audioRef.current.src = track.url;
 
-    // 尝试播放
-    audioRef.current.load(); // 先加载音频
+      // 尝试播放
+      audioRef.current.load(); // 先加载音频
 
-    audioRef.current.play()
-      .then(() => {
-        console.log('[useMusicPlayer] Successfully started playing:', track.title);
-        setIsPlaying(true);
-        setCurrentTrack(track);
-        setCurrentTrackIndex(index);
-        setIsLoading(false);
+      audioRef.current
+        .play()
+        .then(() => {
+          console.log('[useMusicPlayer] Successfully started playing:', track.title);
+          setIsPlaying(true);
+          setCurrentTrack(track);
+          setCurrentTrackIndex(index);
+          setIsLoading(false);
 
-        // 保存当前播放的歌曲ID
-        localStorage.setItem('musicPlayer_trackId', track.id);
-        localStorage.setItem('musicPlayer_time', '0');
-      })
-      .catch((error) => {
-        console.error('[useMusicPlayer] Failed to play track:', error);
-        console.error('[useMusicPlayer] Track details:', {
-          title: track.title,
-          url: track.url,
-          exists: !!track.url
+          // 保存当前播放的歌曲ID
+          localStorage.setItem('musicPlayer_trackId', track.id);
+          localStorage.setItem('musicPlayer_time', '0');
+        })
+        .catch((error) => {
+          console.error('[useMusicPlayer] Failed to play track:', error);
+          console.error('[useMusicPlayer] Track details:', {
+            title: track.title,
+            url: track.url,
+            exists: !!track.url,
+          });
+          setIsLoading(false);
         });
-        setIsLoading(false);
-      });
-  }, [musicList]);
+    },
+    [musicList]
+  );
 
   // 播放下一首
   const nextTrack = useCallback(() => {
@@ -261,9 +265,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const previousTrack = useCallback(() => {
     if (musicList.length === 0) return;
 
-    const prevIndex = currentTrackIndex === 0
-      ? musicList.length - 1
-      : currentTrackIndex - 1;
+    const prevIndex = currentTrackIndex === 0 ? musicList.length - 1 : currentTrackIndex - 1;
     playTrack(prevIndex);
   }, [currentTrackIndex, musicList.length, playTrack]);
 

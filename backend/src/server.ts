@@ -4,12 +4,14 @@ import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { RoomManager } from './managers/RoomManager';
 import { HistoryManager } from './managers/HistoryManager';
 import { PlayerManager } from './managers/PlayerManager';
 import { SocketHandlers } from './socket/handlers';
 import { supabaseService } from './services/supabaseService';
 import { localMusicService } from './services/localMusicService';
+import { log } from './utils/logger';
 
 // 用于避免重复打印音乐库加载日志
 let musicListLogged = false;
@@ -26,7 +28,7 @@ const getMusicDir = (): string => {
     return windowsPath;
   }
 
-  const userMusicDir = path.join(require('os').homedir(), 'Music');
+  const userMusicDir = path.join(os.homedir(), 'Music');
   if (fs.existsSync(userMusicDir)) {
     return userMusicDir;
   }
@@ -40,7 +42,7 @@ const httpServer = createServer(app);
 const getAllowedOrigins = (): string | string[] => {
   const origins = process.env.ALLOWED_ORIGINS;
   if (origins) {
-    return origins.split(',').map(o => o.trim());
+    return origins.split(',').map((o) => o.trim());
   }
   // 开发环境默认允许所有来源
   return '*';
@@ -68,10 +70,12 @@ const playerManager = new PlayerManager('./data');
 const socketHandlers = new SocketHandlers(roomManager, historyManager, playerManager);
 
 // Initialize history
-historyManager.initialize().catch(err => console.error('Failed to initialize history:', err));
+historyManager.initialize().catch((err) => log.error('Failed to initialize history:', err));
 
 // Initialize local music service (preload all music at startup)
-localMusicService.initialize().catch(err => console.error('Failed to initialize local music service:', err));
+localMusicService
+  .initialize()
+  .catch((err) => log.error('Failed to initialize local music service:', err));
 
 // REST API routes
 app.get('/api/health', (req, res) => {
@@ -99,13 +103,13 @@ app.get('/api/history/player/:name', async (req, res) => {
 
 app.get('/api/leaderboard', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
-  
+
   try {
     // 优先从Supabase获取
     const supabaseLeaderboard = await supabaseService.getLeaderboard(limit);
     if (supabaseLeaderboard.length > 0) {
       // 转换字段名以兼容前端
-      const transformed = supabaseLeaderboard.map(p => ({
+      const transformed = supabaseLeaderboard.map((p) => ({
         id: p.id,
         name: p.name,
         score: p.score,
@@ -113,15 +117,15 @@ app.get('/api/leaderboard', async (req, res) => {
         wins: p.wins,
         losses: p.losses,
         winRate: p.win_rate,
-        lastPlayedAt: new Date(p.last_played_at).getTime()
+        lastPlayedAt: new Date(p.last_played_at).getTime(),
       }));
       res.json(transformed);
       return;
     }
   } catch (err) {
-    console.error('[API] Supabase leaderboard error:', err);
+    log.error('[API] Supabase leaderboard error:', err);
   }
-  
+
   // 降级到本地
   const leaderboard = playerManager.getLeaderboard(limit);
   res.json(leaderboard);
@@ -131,12 +135,12 @@ app.get('/api/leaderboard', async (req, res) => {
 app.get('/api/games', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
   const offset = parseInt(req.query.offset as string) || 0;
-  
+
   try {
     const games = await supabaseService.getGameHistory(limit, offset);
     res.json(games);
   } catch (err) {
-    console.error('[API] Supabase games error:', err);
+    log.error('[API] Supabase games error:', err);
     res.json([]);
   }
 });
@@ -146,14 +150,14 @@ app.get('/api/games', async (req, res) => {
 // 注册
 app.post('/api/auth/register', async (req, res) => {
   const { name } = req.body;
-  
+
   if (!name || typeof name !== 'string') {
     res.status(400).json({ success: false, error: '请提供昵称' });
     return;
   }
 
   const result = await supabaseService.registerPlayer(name);
-  
+
   if (result.success) {
     res.json({
       success: true,
@@ -176,14 +180,14 @@ app.post('/api/auth/register', async (req, res) => {
 // 登录
 app.post('/api/auth/login', async (req, res) => {
   const { name } = req.body;
-  
+
   if (!name || typeof name !== 'string') {
     res.status(400).json({ success: false, error: '请提供昵称' });
     return;
   }
 
   const result = await supabaseService.loginPlayer(name);
-  
+
   if (result.success) {
     res.json({
       success: true,
@@ -205,7 +209,7 @@ app.post('/api/auth/login', async (req, res) => {
 // 检查昵称是否可用
 app.get('/api/auth/check-name', async (req, res) => {
   const name = req.query.name as string;
-  
+
   if (!name) {
     res.status(400).json({ available: false, error: '请提供昵称' });
     return;
@@ -218,9 +222,9 @@ app.get('/api/auth/check-name', async (req, res) => {
 // 获取玩家信息
 app.get('/api/player/:id', async (req, res) => {
   const playerId = req.params.id;
-  
+
   const player = await supabaseService.getPlayerById(playerId);
-  
+
   if (player) {
     res.json({
       id: player.id,
@@ -254,18 +258,16 @@ app.get('/api/music/stream', async (req, res) => {
 
     // 安全检查：确保路径在允许的目录内
     const musicDir = getMusicDir();
-    const fs = require('fs');
-    const path = require('path');
 
     if (!decodedPath.startsWith(musicDir)) {
-      console.error('[API] Invalid file path:', decodedPath);
+      log.error('[API] Invalid file path:', decodedPath);
       res.status(403).send('Access denied');
       return;
     }
 
     // 检查文件是否存在
     if (!fs.existsSync(decodedPath)) {
-      console.error('[API] File not found:', decodedPath);
+      log.error('[API] File not found:', decodedPath);
       res.status(404).send('File not found');
       return;
     }
@@ -278,7 +280,7 @@ app.get('/api/music/stream', async (req, res) => {
       '.wav': 'audio/wav',
       '.m4a': 'audio/mp4',
       '.aac': 'audio/aac',
-      '.ogg': 'audio/ogg'
+      '.ogg': 'audio/ogg',
     };
 
     const contentType = contentTypes[ext] || 'audio/mpeg';
@@ -293,7 +295,6 @@ app.get('/api/music/stream', async (req, res) => {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunksize = end - start + 1;
 
       // 限制单次请求的数据块大小，减少客户端缓冲
       const MAX_CHUNK_SIZE = 512 * 1024; // 512KB
@@ -305,8 +306,8 @@ app.get('/api/music/stream', async (req, res) => {
         'Content-Length': adjustedEnd - start + 1,
         'Content-Type': contentType,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       });
 
       const stream = fs.createReadStream(decodedPath, { start, end: adjustedEnd });
@@ -316,15 +317,15 @@ app.get('/api/music/stream', async (req, res) => {
         'Content-Length': fileSize,
         'Content-Type': contentType,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
+        Pragma: 'no-cache',
+        Expires: '0',
       });
 
       const stream = fs.createReadStream(decodedPath);
       stream.pipe(res);
     }
   } catch (error) {
-    console.error('[API] Music stream error:', error);
+    log.error('[API] Music stream error:', error);
     if (!res.headersSent) {
       res.status(500).send('Internal server error');
     }
@@ -346,18 +347,16 @@ app.get('/api/music/lrc', async (req, res) => {
 
     // 安全检查：确保路径在允许的目录内
     const musicDir = getMusicDir();
-    const fs = require('fs');
-    const path = require('path');
 
     if (!decodedPath.startsWith(musicDir)) {
-      console.error('[API] Invalid file path:', decodedPath);
+      log.error('[API] Invalid file path:', decodedPath);
       res.status(403).send('Access denied');
       return;
     }
 
     // 检查文件是否存在
     if (!fs.existsSync(decodedPath)) {
-      console.error('[API] LRC file not found:', decodedPath);
+      log.error('[API] LRC file not found:', decodedPath);
       res.status(404).send('File not found');
       return;
     }
@@ -367,7 +366,7 @@ app.get('/api/music/lrc', async (req, res) => {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.send(lrcContent);
   } catch (error) {
-    console.error('[API] Error serving LRC file:', error);
+    log.error('[API] Error serving LRC file:', error);
     res.status(500).send('Internal server error');
   }
 });
@@ -379,15 +378,18 @@ app.get('/api/music/local', async (req, res) => {
   try {
     // 允许空关键词（返回所有音乐或前 N 首）
     const searchKeyword = keyword && typeof keyword === 'string' ? keyword : '';
-    const results = await localMusicService.searchMusic(searchKeyword, parseInt(limit.toString()) || 999999);
+    const results = await localMusicService.searchMusic(
+      searchKeyword,
+      parseInt(limit.toString()) || 999999
+    );
 
     // 优化日志输出，只在搜索时有关键词时才详细打印
     if (searchKeyword) {
-      console.log(`[API] 🔍 搜索音乐: "${searchKeyword}" - 找到 ${results.length} 首歌曲`);
+      log.info(`[API] 🔍 搜索音乐: "${searchKeyword}" - 找到 ${results.length} 首歌曲`);
     } else {
       // 空关键词只在第一次或音乐列表变化时打印（用静默标志控制）
       if (!musicListLogged) {
-        console.log(`[API] 📚 加载音乐库: ${results.length} 首歌曲`);
+        log.info(`[API] 📚 加载音乐库: ${results.length} 首歌曲`);
         musicListLogged = true;
       }
     }
@@ -395,7 +397,7 @@ app.get('/api/music/local', async (req, res) => {
     // 确保返回数组
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {
-    console.error('[API] ❌ 音乐搜索错误:', error);
+    log.error('[API] ❌ 音乐搜索错误:', error);
     // 返回空数组而不是错误，避免前端 JSON 解析失败
     res.json([]);
   }
@@ -408,13 +410,13 @@ app.get('/api/music/health', (req, res) => {
     res.json({
       healthy: true,
       status: status,
-      message: '音乐库服务正常'
+      message: '音乐库服务正常',
     });
   } catch (error) {
     res.status(500).json({
       healthy: false,
       error: error instanceof Error ? error.message : '未知错误',
-      message: '音乐库服务异常'
+      message: '音乐库服务异常',
     });
   }
 });
@@ -428,11 +430,11 @@ app.get('/api/music/all', async (req, res) => {
       parseInt(limit.toString()) || 999999,
       sortBy as 'title' | 'artist' | 'album'
     );
-    
-    console.log(`[API] 📚 获取所有音乐: ${results.length} 首歌曲 (排序: ${sortBy})`);
+
+    log.info(`[API] 📚 获取所有音乐: ${results.length} 首歌曲 (排序: ${sortBy})`);
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {
-    console.error('[API] ❌ 获取所有音乐错误:', error);
+    log.error('[API] ❌ 获取所有音乐错误:', error);
     res.json([]);
   }
 });
@@ -440,13 +442,13 @@ app.get('/api/music/all', async (req, res) => {
 // 刷新音乐缓存
 app.post('/api/music/refresh', async (req, res) => {
   try {
-    console.log('[API] 🔄 刷新音乐缓存...');
+    log.info('[API] 🔄 刷新音乐缓存...');
     localMusicService.refreshCache();
-    
+
     // 重新扫描并获取最新的音乐列表
     const allMusic = await localMusicService.getAllMusicSorted(999999, 'title');
-    
-    console.log(`[API] ✅ 音乐库已刷新: ${allMusic.length} 首歌曲`);
+
+    log.info(`[API] ✅ 音乐库已刷新: ${allMusic.length} 首歌曲`);
 
     // 重置日志标志，允许下次加载时打印
     musicListLogged = false;
@@ -456,13 +458,13 @@ app.post('/api/music/refresh', async (req, res) => {
       success: true,
       count: allMusic.length,
       message: `已刷新音乐库，共 ${allMusic.length} 首歌曲`,
-      data: allMusic
+      data: allMusic,
     });
   } catch (error) {
-    console.error('[API] ❌ 刷新音乐库失败:', error);
+    log.error('[API] ❌ 刷新音乐库失败:', error);
     res.status(500).json({
       success: false,
-      error: '刷新音乐库失败'
+      error: '刷新音乐库失败',
     });
   }
 });
@@ -473,40 +475,40 @@ app.get('/api/music/status', (req, res) => {
     const status = localMusicService.getStatus();
     res.json(status);
   } catch (error) {
-    console.error('[API] Get music status error:', error);
+    log.error('[API] Get music status error:', error);
     res.status(500).json({
       success: false,
-      error: '获取音乐库状态失败'
+      error: '获取音乐库状态失败',
     });
   }
 });
 
 // Socket.io events
-io.on('connection', socket => {
+io.on('connection', (socket) => {
   socketHandlers.handleConnection(socket, io);
 });
 
 // Periodic cleanup - ensure at least one room exists
 setInterval(() => {
   roomManager.cleanupEmptyRooms();
-  
+
   // 如果清理后没有房间，创建一个默认房间
   if (roomManager.getRoomCount() === 0) {
     const { roomId } = roomManager.createRoom('默认五子棋房间');
-    console.log(`[Server] 清理后重新创建默认房间: ${roomId} (默认五子棋房间)`);
+    log.info(`[Server] 清理后重新创建默认房间: ${roomId} (默认五子棋房间)`);
   }
 }, 30000);
 
 // Start server
 const PORT = parseInt(process.env.PORT || '3000', 10);
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Server] Gomoku server running on port ${PORT}`);
-  console.log(`[Server] Listening on all network interfaces (0.0.0.0)`);
-  
+  log.info(`[Server] Gomoku server running on port ${PORT}`);
+  log.info(`[Server] Listening on all network interfaces (0.0.0.0)`);
+
   // 如果没有房间，创建一个默认房间
   if (roomManager.getRoomCount() === 0) {
     const { roomId } = roomManager.createRoom('默认五子棋房间');
-    console.log(`[Server] 创建默认房间: ${roomId} (默认五子棋房间)`);
+    log.info(`[Server] 创建默认房间: ${roomId} (默认五子棋房间)`);
   }
 });
 

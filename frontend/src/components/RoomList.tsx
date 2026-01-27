@@ -93,8 +93,10 @@ export const RoomList: React.FC<RoomListProps> = ({
                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
                        border border-primary/30 overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
-                        -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent 
+                        -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"
+            ></div>
             <div className="flex items-center justify-center gap-3">
               <span className="text-2xl">✨</span>
               <span className="text-lg">{loading ? '创建中...' : '创建新房间'}</span>
@@ -127,7 +129,9 @@ export const RoomList: React.FC<RoomListProps> = ({
             <div className="text-center py-16">
               <div className="text-6xl mb-4">🎯</div>
               <div className="text-dark-text-secondary text-lg mb-2">暂无可用房间</div>
-              <div className="text-dark-text-tertiary text-sm">点击上方按钮创建一个新房间开始游戏</div>
+              <div className="text-dark-text-tertiary text-sm">
+                点击上方按钮创建一个新房间开始游戏
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -171,28 +175,28 @@ export const RoomList: React.FC<RoomListProps> = ({
 
                     {/* Players Info */}
                     <div className="space-y-2 mb-5">
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${
-                        room.blackPlayer
-                          ? 'bg-dark-bg-tertiary'
-                          : 'bg-dark-bg-tertiary/50 opacity-60'
-                      }`}>
+                      <div
+                        className={`flex items-center gap-2 p-2 rounded-lg ${
+                          room.blackPlayer
+                            ? 'bg-dark-bg-tertiary'
+                            : 'bg-dark-bg-tertiary/50 opacity-60'
+                        }`}
+                      >
                         <span className="text-lg">⚫</span>
                         <span className="text-sm text-dark-text-secondary">
-                          {room.blackPlayer
-                            ? room.blackPlayer.name
-                            : '等待玩家加入...'}
+                          {room.blackPlayer ? room.blackPlayer.name : '等待玩家加入...'}
                         </span>
                       </div>
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${
-                        room.whitePlayer
-                          ? 'bg-dark-bg-tertiary'
-                          : 'bg-dark-bg-tertiary/50 opacity-60'
-                      }`}>
+                      <div
+                        className={`flex items-center gap-2 p-2 rounded-lg ${
+                          room.whitePlayer
+                            ? 'bg-dark-bg-tertiary'
+                            : 'bg-dark-bg-tertiary/50 opacity-60'
+                        }`}
+                      >
                         <span className="text-lg">⚪</span>
                         <span className="text-sm text-dark-text-secondary">
-                          {room.whitePlayer
-                            ? room.whitePlayer.name
-                            : '等待玩家加入...'}
+                          {room.whitePlayer ? room.whitePlayer.name : '等待玩家加入...'}
                         </span>
                       </div>
                       {room.spectatorCount !== undefined && room.spectatorCount > 0 && (
@@ -234,7 +238,8 @@ export const RoomList: React.FC<RoomListProps> = ({
                       </button>
 
                       {/* Close Room Button */}
-                      {((room.blackPlayer && playerSocketId === room.blackPlayer.id) || isAdmin) && (
+                      {((room.blackPlayer && playerSocketId === room.blackPlayer.id) ||
+                        isAdmin) && (
                         <button
                           onClick={() => {
                             console.log(`[RoomList] Close button clicked - roomId: ${room.roomId}`);

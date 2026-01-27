@@ -6,7 +6,7 @@ export const getBackendUrl = (): string => {
   // 尝试访问环境变量
   // @ts-ignore - vite 会在构建时注入这个变量
   const envBackendUrl = import.meta?.env?.VITE_BACKEND_URL;
-  
+
   // 如果构建时设置了 VITE_BACKEND_URL 环境变量，使用它
   if (envBackendUrl) {
     return envBackendUrl;
@@ -18,10 +18,9 @@ export const getBackendUrl = (): string => {
   if (currentUrl.includes(':5173')) {
     return currentUrl.replace(':5173', ':3000');
   }
-  
+
   // 如果不是 5173 端口，则使用默认端口 3000
   const url = new URL(currentUrl);
   url.port = '3000';
   return url.toString();
 };
-

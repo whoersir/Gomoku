@@ -37,10 +37,7 @@ export const PlayerRightPanel: React.FC<PlayerRightPanelProps> = ({
     <div className="card-base space-y-4" style={{ backgroundColor: 'rgba(26, 31, 46, 0.5)' }}>
       {/* Spectator Action - Only show when there's an empty spot */}
       {isSpectator && isWaiting && hasEmptySpot && (
-        <button
-          onClick={handleJoinGame}
-          className="w-full btn-primary text-sm py-2"
-        >
+        <button onClick={handleJoinGame} className="w-full btn-primary text-sm py-2">
           🎮 参与对局
         </button>
       )}
@@ -61,11 +58,11 @@ export const PlayerRightPanel: React.FC<PlayerRightPanelProps> = ({
         <div className="text-sm text-dark-text-secondary mt-2">
           {whitePlayer?.name && whitePlayer.name !== 'Waiting...'
             ? whitePlayer.name
-            : (isWaiting ? '⏳ 等待加入...' : whitePlayer?.name || '未加入')}
+            : isWaiting
+              ? '⏳ 等待加入...'
+              : whitePlayer?.name || '未加入'}
         </div>
-        {isWhiteTurn && (
-          <div className="mt-2 text-xs text-primary font-medium">⏱️ 正在思考...</div>
-        )}
+        {isWhiteTurn && <div className="mt-2 text-xs text-primary font-medium">⏱️ 正在思考...</div>}
       </div>
 
       {/* Spectators List */}
@@ -85,9 +82,7 @@ export const PlayerRightPanel: React.FC<PlayerRightPanelProps> = ({
               </div>
             ))
           ) : (
-            <div className="text-xs text-dark-text-tertiary py-2">
-              暂无观战人员
-            </div>
+            <div className="text-xs text-dark-text-tertiary py-2">暂无观战人员</div>
           )}
         </div>
       </div>

@@ -21,7 +21,10 @@ export const SpectatorPanel: React.FC<SpectatorPanelProps> = ({
   return (
     <div className="card-base p-4" style={{ width: '716.66px', height: '101.33px' }}>
       <div className="flex justify-between items-center mb-3" style={{ height: '30px' }}>
-        <div className="text-base font-bold text-dark-text-secondary flex items-center gap-2" style={{ lineHeight: '1' }}>
+        <div
+          className="text-base font-bold text-dark-text-secondary flex items-center gap-2"
+          style={{ lineHeight: '1' }}
+        >
           <span>👁️</span>观战人员 ({gameState?.spectators?.length || 0})
         </div>
         {isSpectator && gameState?.status === 'waiting' && hasEmptySpot && (
@@ -46,9 +49,7 @@ export const SpectatorPanel: React.FC<SpectatorPanelProps> = ({
             </div>
           ))
         ) : (
-          <div className="text-xs text-dark-text-tertiary py-2 text-center">
-            暂无观战人员
-          </div>
+          <div className="text-xs text-dark-text-tertiary py-2 text-center">暂无观战人员</div>
         )}
       </div>
     </div>
