@@ -1,57 +1,51 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { PlayerState, MusicTrack, PlayMode } from '../types/musicTypes';
+import { MusicTrack } from '../types/musicTypes';
 import { musicService } from '../services/musicService';
-import {
-  STORAGE_KEY_PLAYLIST,
-  STORAGE_KEY_TRACK_INDEX,
-  STORAGE_KEY_VOLUME,
-  STORAGE_KEY_PLAY_MODE
-} from '../data/musicPresets';
 
-export function useMusicPlayer() {
-  const [playerState, setPlayerState] = useState<PlayerState>(() => {
-    try {
-      const savedPlaylist = localStorage.getItem(STORAGE_KEY_PLAYLIST);
-      const savedIndex = localStorage.getItem(STORAGE_KEY_TRACK_INDEX);
-      const savedVolume = localStorage.getItem(STORAGE_KEY_VOLUME);
-      const savedPlayMode = localStorage.getItem(STORAGE_KEY_PLAY_MODE);
+export type PlayMode = 'sequential' | 'single' | 'random';
 
-      // 不再过滤 URL
-      const playlist = savedPlaylist ? JSON.parse(savedPlaylist) : musicService.getPresetPlaylist();
+export interface UseMusicPlayerReturn {
+  // 状态
+  currentTrack: MusicTrack | null;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  isMuted: boolean;
+  musicList: MusicTrack[];
+  isLoading: boolean;
+  playMode: PlayMode;
 
-      const currentTrackIndex = savedIndex ? Math.min(parseInt(savedIndex, 10), playlist.length - 1) : 0;
-      const volume = savedVolume ? parseFloat(savedVolume) : 0.7;
-      const playMode = (savedPlayMode as PlayMode) || 'sequential';
+  // 方法
+  togglePlay: () => void;
+  playTrack: (index: number) => void;
+  nextTrack: () => void;
+  previousTrack: () => void;
+  seekTo: (time: number) => void;
+  setVolume: (volume: number) => void;
+  toggleMute: () => void;
+  setPlayMode: (mode: PlayMode) => void;
+  refreshMusicList: () => Promise<void>;
 
-      return {
-        currentTrack: playlist[currentTrackIndex] || null,
-        isPlaying: false,
-        volume,
-        currentTime: 0,
-        playlist,
-        currentTrackIndex,
-        isMiniMode: false,
-        playlistId: 'default',
-        playMode
-      };
-    } catch (error) {
-      console.error('Error loading player state:', error);
-      return {
-        currentTrack: null,
-        isPlaying: false,
-        volume: 0.7,
-        currentTime: 0,
-        playlist: musicService.getPresetPlaylist(),
-        currentTrackIndex: 0,
-        isMiniMode: false,
-        playlistId: 'default',
-        playMode: 'sequential'
-      };
-    }
-  });
+  // 工具方法
+  formatTime: (time: number) => string;
+}
 
+export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<MusicTrack | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolumeState] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [musicList, setMusicList] = useState<MusicTrack[]>([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [playMode, setPlayMode] = useState<PlayMode>('sequential');
+  const previousVolumeRef = useRef(0.8);
 
+  // 初始化音频元素
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
@@ -59,325 +53,300 @@ export function useMusicPlayer() {
 
     const audio = audioRef.current;
 
+    // 加载保存的音量设置
+    const savedVolume = localStorage.getItem('musicPlayer_volume');
+    if (savedVolume) {
+      const vol = parseFloat(savedVolume);
+      audio.volume = vol;
+      setVolumeState(vol);
+      previousVolumeRef.current = vol;
+    } else {
+      audio.volume = volume;
+    }
+
+    // 监听音频事件
     const handleTimeUpdate = () => {
-      setPlayerState(prev => ({ ...prev, currentTime: audio.currentTime }));
+      setCurrentTime(audio.currentTime);
     };
 
-  const handleEnded = () => {
-    const { playMode, currentTrackIndex, playlist } = playerState;
-    
-    // 增加当前歌曲的播放次数
-    const currentTrack = playerState.currentTrack;
-    if (currentTrack) {
-      try {
-        const savedPlayCounts = localStorage.getItem('music_player_play_counts');
-        const playCounts = savedPlayCounts ? JSON.parse(savedPlayCounts) : {};
-        playCounts[currentTrack.id] = (playCounts[currentTrack.id] || 0) + 1;
-        localStorage.setItem('music_player_play_counts', JSON.stringify(playCounts));
-      } catch (error) {
-        console.error('Failed to update play count:', error);
-      }
-    }
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      setIsLoading(false);
+    };
 
-    // 根据播放模式处理歌曲结束
-    if (playMode === 'single') {
-      // 单曲循环：重新播放当前歌曲
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(console.error);
-      }
-    } else if (playMode === 'random') {
-      // 随机播放：随机选择一首歌
-      const randomIndex = Math.floor(Math.random() * playlist.length);
-      playTrack(playlist[randomIndex], randomIndex);
-    } else {
-      // 顺序播放或列表循环
-      playNext();
-    }
-  };
-
-    const handleCanPlay = () => {
-      if (playerState.isPlaying) {
-        audio.play().catch(console.error);
+    const handleEnded = () => {
+      if (playMode === 'single') {
+        // 单曲循环，重新播放当前歌曲
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
+      } else {
+        // 自动播放下一首
+        nextTrack();
       }
     };
 
     const handleError = (e: Event) => {
-      const track = playerState.currentTrack;
-      console.error('[useMusicPlayer] Audio playback error:', {
-        trackTitle: track?.title,
-        trackUrl: track?.url,
-        error: e
-      });
-      // 停止当前播放，不自动跳到下一首（避免循环错误）
-      setPlayerState(prev => ({ ...prev, isPlaying: false }));
+      console.error('[useMusicPlayer] Audio error:', e);
+      setIsLoading(false);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
     };
-  }, [playerState.isPlaying]);
+  }, []);
 
+  // 加载音乐列表
   useEffect(() => {
-    if (!audioRef.current) return;
-
-    const audio = audioRef.current;
-
-    if (playerState.currentTrack) {
-      const loadAndPlay = async (track: typeof playerState.currentTrack) => {
-        // 检查是否有有效的播放URL
-        if (!track.url || track.url.trim() === '') {
-          console.warn('[useMusicPlayer] No valid URL for track:', track.title, track.url);
-          // 无效URL，停止播放
-          setPlayerState(prev => ({ ...prev, isPlaying: false }));
-          return;
+    const initializeMusic = async () => {
+      try {
+        setIsLoading(true);
+        // 使用新的排序 API 获取音乐列表
+        const allMusic = await musicService.getAllMusicSorted('title', 999999);
+        setMusicList(allMusic);
+        
+        // 如果有预设的当前播放位置，设置当前歌曲
+        if (currentTrack) {
+          const index = allMusic.findIndex(t => t.id === currentTrack.id);
+          if (index !== -1) {
+            setCurrentTrack(allMusic[index]);
+            setCurrentTrackIndex(index);
+          }
         }
-
-        audio.src = track.url;
-        audio.volume = playerState.volume;
-      };
-
-      loadAndPlay(playerState.currentTrack);
-    }
-
-    return () => {
-      audio.pause();
+      } catch (error) {
+        console.error('Failed to initialize music:', error);
+        // 降级使用预设播放列表
+        setMusicList(musicService.getPresetPlaylist());
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [playerState.currentTrack]); // 只在切换歌曲时重新加载
 
-  // 单独处理播放/暂停状态，避免重新加载音轨
-  useEffect(() => {
-    if (!audioRef.current) return;
+    initializeMusic();
+  }, []);
 
-    const audio = audioRef.current;
-
-    if (playerState.isPlaying) {
-      audio.play().catch(console.error);
-    } else {
-      audio.pause();
-    }
-  }, [playerState.isPlaying]);
-
-  // 单独处理音量变化，避免重新加载音轨
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = playerState.volume;
-    }
-  }, [playerState.volume]);
-
-  useEffect(() => {
+  // 刷新音乐列表
+  const refreshMusicList = useCallback(async () => {
     try {
-      // 保存播放列表时移除封面图片，避免localStorage配额超限
-      const playlistWithoutCovers = playerState.playlist.map(track => ({
-        ...track,
-        cover: undefined // 移除Base64封面图片
-      }));
-
-      localStorage.setItem(STORAGE_KEY_PLAYLIST, JSON.stringify(playlistWithoutCovers));
-      localStorage.setItem(STORAGE_KEY_TRACK_INDEX, String(playerState.currentTrackIndex));
-      localStorage.setItem(STORAGE_KEY_VOLUME, String(playerState.volume));
-      localStorage.setItem(STORAGE_KEY_PLAY_MODE, playerState.playMode);
+      setIsLoading(true);
+      // 调用后端刷新API
+      const response = await fetch('/api/music/refresh', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('[useMusicPlayer] 后端音乐库刷新成功:', result.count);
+        
+        // 直接使用刷新API返回的音乐列表
+        const allMusic = result.data.map((track: any) => ({
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          album: track.album,
+          duration: track.duration,
+          url: track.url,
+          cover: track.cover || 'https://picsum.photos/64/64'
+        }));
+        
+        setMusicList(allMusic);
+        
+        // 如果有当前播放的歌曲，重新设置
+        if (currentTrack) {
+          const index = allMusic.findIndex(t => t.id === currentTrack.id);
+          if (index !== -1) {
+            setCurrentTrack(allMusic[index]);
+            setCurrentTrackIndex(index);
+          }
+        }
+      } else {
+        console.error('[useMusicPlayer] 后端音乐库刷新失败');
+      }
     } catch (error) {
-      console.error('Error saving player state:', error);
+      console.error('[useMusicPlayer] 刷新音乐列表错误:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [playerState.playlist, playerState.currentTrackIndex, playerState.volume, playerState.playMode]);
+  }, [currentTrack]);
 
-  const playPause = useCallback(() => {
-    if (!audioRef.current || !playerState.currentTrack) return;
+  // 播放/暂停切换
+  const togglePlay = useCallback(() => {
+    if (!currentTrack || !audioRef.current) return;
 
-    if (playerState.isPlaying) {
+    if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(console.error);
+      audioRef.current.play();
     }
 
-    setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-  }, [playerState.isPlaying, playerState.currentTrack]);
+    setIsPlaying(!isPlaying);
+  }, [currentTrack, isPlaying]);
 
-  const playNext = useCallback(() => {
-    const { playMode, currentTrackIndex, playlist } = playerState;
+  // 播放指定索引的曲目
+  const playTrack = useCallback((index: number) => {
+    if (index < 0 || index >= musicList.length || !audioRef.current) return;
 
-    // 列表循环模式：到最后一首时回到第一首
-    // 顺序模式：到最后一首时停止
-    if (playMode === 'sequential' && currentTrackIndex === playlist.length - 1) {
-      setPlayerState(prev => ({ ...prev, isPlaying: false }));
-      return;
+    setIsLoading(true);
+    const track = musicList[index];
+
+    console.log('[useMusicPlayer] Playing track:', track);
+    console.log('[useMusicPlayer] Track URL:', track.url);
+
+    // 重置音频元素
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+
+    // 设置新的音频源
+    audioRef.current.src = track.url;
+
+    // 尝试播放
+    audioRef.current.load(); // 先加载音频
+
+    audioRef.current.play()
+      .then(() => {
+        console.log('[useMusicPlayer] Successfully started playing:', track.title);
+        setIsPlaying(true);
+        setCurrentTrack(track);
+        setCurrentTrackIndex(index);
+        setIsLoading(false);
+
+        // 保存当前播放的歌曲ID
+        localStorage.setItem('musicPlayer_trackId', track.id);
+        localStorage.setItem('musicPlayer_time', '0');
+      })
+      .catch((error) => {
+        console.error('[useMusicPlayer] Failed to play track:', error);
+        console.error('[useMusicPlayer] Track details:', {
+          title: track.title,
+          url: track.url,
+          exists: !!track.url
+        });
+        setIsLoading(false);
+      });
+  }, [musicList]);
+
+  // 播放下一首
+  const nextTrack = useCallback(() => {
+    if (musicList.length === 0) return;
+
+    if (playMode === 'single') {
+      // 单曲循环，重新播放当前歌曲
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else if (playMode === 'random') {
+      // 随机播放
+      const randomIndex = Math.floor(Math.random() * musicList.length);
+      playTrack(randomIndex);
+    } else {
+      // 顺序播放
+      const nextIndex = (currentTrackIndex + 1) % musicList.length;
+      playTrack(nextIndex);
     }
+  }, [currentTrackIndex, musicList.length, playMode, playTrack]);
 
-    const nextIndex = (currentTrackIndex + 1) % playlist.length;
-    const nextTrack = playlist[nextIndex];
+  // 播放上一首
+  const previousTrack = useCallback(() => {
+    if (musicList.length === 0) return;
 
-    setPlayerState(prev => ({
-      ...prev,
-      currentTrack: nextTrack,
-      currentTrackIndex: nextIndex,
-      currentTime: 0,
-      isPlaying: true
-    }));
-  }, [playerState.currentTrackIndex, playerState.playlist, playerState.playMode]);
+    const prevIndex = currentTrackIndex === 0
+      ? musicList.length - 1
+      : currentTrackIndex - 1;
+    playTrack(prevIndex);
+  }, [currentTrackIndex, musicList.length, playTrack]);
 
-  const playPrevious = useCallback(() => {
-    const prevIndex = playerState.currentTrackIndex === 0 
-      ? playerState.playlist.length - 1 
-      : playerState.currentTrackIndex - 1;
-    const prevTrack = playerState.playlist[prevIndex];
-
-    setPlayerState(prev => ({
-      ...prev,
-      currentTrack: prevTrack,
-      currentTrackIndex: prevIndex,
-      currentTime: 0,
-      isPlaying: true
-    }));
-  }, [playerState.currentTrackIndex, playerState.playlist]);
-
-  const playTrack = useCallback((track: MusicTrack, index?: number) => {
-    const trackIndex = index !== undefined ? index : playerState.playlist.findIndex(t => t.id === track.id);
-
-    if (trackIndex === -1) return;
-
-    setPlayerState(prev => ({
-      ...prev,
-      currentTrack: track,
-      currentTrackIndex: trackIndex,
-      currentTime: 0,
-      isPlaying: true
-    }));
-  }, [playerState.playlist]);
-
-  const setVolume = useCallback((volume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, volume));
-    if (audioRef.current) {
-      audioRef.current.volume = clampedVolume;
-    }
-    setPlayerState(prev => ({ ...prev, volume: clampedVolume }));
-  }, []);
-
-  const seek = useCallback((time: number) => {
+  // 跳转到指定时间
+  const seekTo = useCallback((time: number) => {
     if (!audioRef.current) return;
 
-    const duration = audioRef.current.duration;
-    if (isNaN(duration)) return;
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
 
-    const clampedTime = Math.max(0, Math.min(duration, time));
-    audioRef.current.currentTime = clampedTime;
-    // 立即更新状态，避免UI延迟
-    setPlayerState(prev => ({ ...prev, currentTime: clampedTime }));
-    // 确保 timeupdate 事件触发后同步状态
-    setTimeout(() => {
-      setPlayerState(prev => ({ ...prev, currentTime: audioRef.current?.currentTime || clampedTime }));
-    }, 10);
+    // 保存播放进度
+    localStorage.setItem('musicPlayer_time', time.toString());
   }, []);
 
-  // const toggleMiniMode = useCallback(() => {
-  //   setPlayerState(prev => ({ ...prev, isMiniMode: !prev.isMiniMode }));
-  // }, []);
+  // 设置音量
+  const setVolume = useCallback((newVolume: number) => {
+    if (!audioRef.current) return;
 
-  const loadPlaylist = useCallback(async (tracks: MusicTrack[]) => {
-    console.log('[useMusicPlayer] loadPlaylist called with', tracks.length, 'tracks');
+    const clampedVolume = Math.max(0, Math.min(1, newVolume));
+    audioRef.current.volume = clampedVolume;
+    setVolumeState(clampedVolume);
+    previousVolumeRef.current = clampedVolume;
 
-    if (tracks.length === 0) {
-      console.warn('[useMusicPlayer] No tracks provided, skipping playlist load');
-      return;
+    // 保存音量设置
+    localStorage.setItem('musicPlayer_volume', clampedVolume.toString());
+
+    // 如果音量大于0，取消静音
+    if (clampedVolume > 0) {
+      setIsMuted(false);
     }
-
-    console.log('[useMusicPlayer] First track to load:', {
-      title: tracks[0].title,
-      url: tracks[0].url,
-      urlType: typeof tracks[0].url
-    });
-
-    setPlayerState(prev => ({
-      ...prev,
-      playlist: tracks,
-      currentTrackIndex: 0,
-      currentTrack: tracks[0] || null,
-      currentTime: 0,
-      isPlaying: false
-    }));
   }, []);
 
-  const searchMusic = useCallback(async (query: string) => {
-    try {
-      const results = await musicService.searchMusic({ query, limit: 999999 });
+  // 切换静音
+  const toggleMute = useCallback(() => {
+    if (!audioRef.current) return;
 
-      console.log('[useMusicPlayer] Raw search results count:', results.length);
-      console.log('[useMusicPlayer] Full results:', results);
-
-      if (results.length > 0) {
-        console.log('[useMusicPlayer] First track:', {
-          title: results[0].title,
-          url: results[0].url,
-          urlType: typeof results[0].url,
-          allKeys: Object.keys(results[0])
-        });
-        console.log('[useMusicPlayer] First track full object:', JSON.stringify(results[0], null, 2));
-      }
-
-      // 按专辑分组并排序
-      const sortedResults = results.sort((a, b) => {
-        // 先按专辑名排序
-        const albumCompare = a.album.localeCompare(b.album, 'zh-CN');
-        if (albumCompare !== 0) return albumCompare;
-
-        // 同一专辑内，按音轨号（如果有）或歌名排序
-        if (a.trackNumber !== undefined && b.trackNumber !== undefined) {
-          return a.trackNumber - b.trackNumber;
-        }
-        return a.title.localeCompare(b.title, 'zh-CN');
-      });
-
-      console.log('[useMusicPlayer] Sorted results by album:', sortedResults.length, 'tracks');
-
-      if (sortedResults.length > 0) {
-        await loadPlaylist(sortedResults);
-      } else {
-        console.warn('[useMusicPlayer] Search returned no tracks');
-      }
-
-      return sortedResults;
-    } catch (error) {
-      console.error('Search music error:', error);
-      return [];
+    if (isMuted) {
+      // 取消静音，恢复之前的音量
+      audioRef.current.volume = previousVolumeRef.current;
+      setVolumeState(previousVolumeRef.current);
+      setIsMuted(false);
+    } else {
+      // 静音
+      audioRef.current.volume = 0;
+      setVolumeState(0);
+      setIsMuted(true);
     }
-  }, [loadPlaylist]);
+  }, [isMuted]);
 
-  const formatTime = useCallback((seconds: number): string => {
-    if (isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  // 格式化时间显示
+  const formatTime = useCallback((time: number): string => {
+    if (isNaN(time)) return '0:00';
+
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, []);
-
-  const togglePlayMode = useCallback(() => {
-    const modes: PlayMode[] = ['sequential', 'random', 'single', 'loop'];
-    const currentIndex = modes.indexOf(playerState.playMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    const nextMode = modes[nextIndex];
-
-    setPlayerState(prev => ({ ...prev, playMode: nextMode }));
-  }, [playerState.playMode]);
 
   return {
-    playerState,
-    playPause,
-    playNext,
-    playPrevious,
+    // 状态
+    currentTrack,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    musicList,
+    isLoading,
+    playMode,
+
+    // 方法
+    togglePlay,
     playTrack,
+    nextTrack,
+    previousTrack,
+    seekTo,
     setVolume,
-    seek,
-    loadPlaylist,
-    searchMusic,
+    toggleMute,
+    setPlayMode,
+    refreshMusicList,
+
+    // 工具方法
     formatTime,
-    togglePlayMode,
-    getCurrentDuration: useCallback((): number => audioRef.current?.duration || 0, [])
   };
-}
+};

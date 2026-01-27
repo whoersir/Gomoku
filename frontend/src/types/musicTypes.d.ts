@@ -7,6 +7,7 @@ export interface MusicTrack {
     cover?: string;
     url: string;
     trackNumber?: number;
+    lrc?: string;
 }
 export interface Playlist {
     id: string;

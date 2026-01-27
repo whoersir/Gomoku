@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { on, off, clearEventListeners } from '../services/socketService';
 import { GameState, ChatMessage, Room } from '../types';
+import { logger } from '../utils/console';
 
 interface PlayerLeftEvent {
   playerId: string;
@@ -20,6 +21,9 @@ export const useGameState = () => {
   const [playerColor, setPlayerColor] = useState<1 | 2 | null>(null);
   const [isSpectator, setIsSpectator] = useState<boolean>(false); // 观战标记
   const [playerLeftNotice, setPlayerLeftNotice] = useState<PlayerLeftEvent | null>(null);
+
+  // 使用 ref 跟踪是否已注册监听器，避免重复注册
+  const listenersRegistered = useRef(false);
 
   const joinedRoom = useCallback((color: 1 | 2, initialGameState?: GameState) => {
     console.log('[useGameState] joinedRoom called with color:', color);
@@ -71,8 +75,12 @@ export const useGameState = () => {
     };
 
     const handleNewMessage = (message: ChatMessage) => {
-      console.log('[useGameState] newMessage received:', message);
-      setMessages((prev) => [...prev, message]);
+      logger.log('[useGameState] newMessage received:', message);
+      setMessages((prev) => {
+        const newMessages = [...prev, message];
+        // 限制消息列表长度为100条，防止内存占用过大
+        return newMessages.length > 100 ? newMessages.slice(-100) : newMessages;
+      });
     };
 
     const handleRoomListUpdate = (roomList: Room[]) => {
@@ -171,9 +179,9 @@ export const useGameState = () => {
       alert(`房间已关闭：${data.reason}`);
     };
 
-    // 清理事件监听器（强制清理所有旧监听器，避免重复注册）
+    // 清理事件监听器
     const unregisterListeners = () => {
-      console.log('[useGameState] Unregistering socket event listeners...');
+      logger.log('[useGameState] Unregistering socket event listeners...');
       clearEventListeners('gameStateUpdate');
       clearEventListeners('newMessage');
       clearEventListeners('roomListUpdate');
@@ -182,23 +190,21 @@ export const useGameState = () => {
       clearEventListeners('roomClosed');
     };
 
-    // 注册事件监听器（使用 socketService 的 on 函数，它会处理 socket 未初始化的情况）
-    const registerListeners = () => {
-      console.log('[useGameState] Registering socket event listeners...');
+    // 注册事件监听器（只注册一次）
+    if (!listenersRegistered.current) {
+      logger.log('[useGameState] Registering socket event listeners...');
       on('gameStateUpdate', handleGameStateUpdate);
       on('newMessage', handleNewMessage);
       on('roomListUpdate', handleRoomListUpdate);
       on('playerLeft', handlePlayerLeft);
       on('roomInfo', handleRoomInfo);
       on('roomClosed', handleRoomClosed);
-    };
-
-    // 先清理所有旧监听器，再注册新监听器
-    unregisterListeners();
-    registerListeners();
+      listenersRegistered.current = true;
+    }
 
     return () => {
       unregisterListeners();
+      listenersRegistered.current = false;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -147,11 +147,10 @@ export const emit = (event: string, data?: any, timeout: number = 10000): Promis
 };
 
 export const on = (event: string, callback: (data: any) => void) => {
-  console.log(`[socketService] Attempting to listen to event: ${event}`);
+  // 移除频繁打印的日志，减少控制台噪音
 
   if (!socket) {
-    console.warn(`[socketService] Socket not initialized, storing ${event} handler for later registration`);
-    // 存储 handler 以便 socket 连接后注册
+    // 存储handler以便socket连接后注册
     if (!pendingRegistrations.has(event)) {
       pendingRegistrations.set(event, new Set());
     }
@@ -167,11 +166,9 @@ export const on = (event: string, callback: (data: any) => void) => {
   // 检查是否已经注册过相同的回调，避免重复注册
   const handlers = eventHandlers.get(event)!;
   if (handlers.has(callback)) {
-    console.warn(`[socketService] Handler for event '${event}' already registered, skipping duplicate registration`);
+    // 重复注册是正常的（组件重新渲染），不打印警告
     return;
   }
-
-  console.log(`[socketService] Listening to event: ${event}`);
   handlers.add(callback);
   socket.on(event, callback);
 };

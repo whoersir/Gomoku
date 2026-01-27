@@ -78,7 +78,7 @@ export const RightSidePanel: React.FC<RightSidePanelProps> = ({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="输入消息..."
-            className="input-base flex-1 resize-none text-xs py-2 min-h-[60px]"
+            className="input-base flex-1 resize-none text-xs py-2 h-[60px]"
             rows={2}
           />
           <button

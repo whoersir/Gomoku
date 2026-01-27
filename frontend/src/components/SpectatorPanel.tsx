@@ -19,21 +19,22 @@ export const SpectatorPanel: React.FC<SpectatorPanelProps> = ({
   const hasEmptySpot = !blackPlayer || !whitePlayer || whitePlayer?.name === 'Waiting...';
 
   return (
-    <div className="card-base p-4" style={{ width: boardWidth }}>
-      <div className="flex justify-between items-center mb-3">
-        <div className="text-base font-bold text-dark-text-secondary flex items-center gap-2">
+    <div className="card-base p-4" style={{ width: '716.66px', height: '101.33px' }}>
+      <div className="flex justify-between items-center mb-3" style={{ height: '30px' }}>
+        <div className="text-base font-bold text-dark-text-secondary flex items-center gap-2" style={{ lineHeight: '1' }}>
           <span>👁️</span>观战人员 ({gameState?.spectators?.length || 0})
         </div>
         {isSpectator && gameState?.status === 'waiting' && hasEmptySpot && (
           <button
             onClick={onJoinAsPlayer}
             className="btn-primary text-sm py-2 px-4"
+            style={{ height: '25px' }}
           >
             🎮 参与对局
           </button>
         )}
       </div>
-      <div className="space-y-2 max-h-40 overflow-y-auto text-sm">
+      <div className="space-y-2 overflow-y-auto text-sm" style={{ maxHeight: '65px' }}>
         {gameState?.spectators && gameState.spectators.length > 0 ? (
           gameState.spectators.map((spectator) => (
             <div

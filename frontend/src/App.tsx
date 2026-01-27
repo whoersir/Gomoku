@@ -7,11 +7,14 @@ import { VictoryModal } from './components/VictoryModal';
 import { LeftSidePanel } from './components/LeftSidePanel';
 import { SpectatorPanel } from './components/SpectatorPanel';
 import { RightSidePanel } from './components/RightSidePanel';
-import MusicPlayer from './components/MusicPlayer';
+// import MusicPlayer from './components/MusicPlayer'; // 旧的音乐播放器，已废弃
+import { MiniPlayer } from './components/music/MiniPlayer';
+import { FullPlayer } from './components/music/FullPlayer';
 import { useSocket } from './hooks/useSocket';
 import { useGameState } from './hooks/useGameState';
 import { RoomListNew } from './components/RoomListNew';
 import { getBackendUrl } from './services/apiConfig';
+import { logger } from './utils/console';
 // import { on, off } from './services/socketService';
 
 type PageState = 'connect' | 'roomList' | 'game';
@@ -29,6 +32,15 @@ const STORAGE_KEYS = {
 
 function App() {
   const [page, setPage] = useState<PageState>(() => {
+    // 优先从 URL 参数读取页面状态
+    const url = new URL(window.location.href);
+    const pageParam = url.searchParams.get('page');
+    
+    if (pageParam === 'rooms') return 'roomList';
+    if (pageParam === 'game') return 'game';
+    if (pageParam === 'connect') return 'connect';
+    
+    // 如果 URL 没有参数，从 localStorage 读取
     const savedPage = localStorage.getItem(STORAGE_KEYS.PAGE_STATE);
     return (savedPage as PageState) || 'connect';
   });
@@ -38,7 +50,7 @@ function App() {
     const savedUrl = localStorage.getItem(STORAGE_KEYS.SERVER_URL);
     // 如果保存的是内网地址，自动替换为动态地址
     if (savedUrl && (savedUrl.includes('10.75.31.37') || savedUrl.includes('localhost'))) {
-      console.log('[App] Detected old local URL, using dynamic backend URL');
+      logger.log('[App] Detected old local URL, using dynamic backend URL');
       localStorage.removeItem(STORAGE_KEYS.SERVER_URL);
       return '';
     }
@@ -46,9 +58,34 @@ function App() {
   });
   const [victoryModalVisible, setVictoryModalVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true');
+  const [showFullPlayer, setShowFullPlayer] = useState(false);
 
   const socket = useSocket();
   const gameState = useGameState();
+
+  // 更新 URL 的辅助函数
+  const updateURL = (pageState: PageState, roomId?: string) => {
+    const url = new URL(window.location.href);
+    
+    switch (pageState) {
+      case 'connect':
+        url.searchParams.set('page', 'connect');
+        url.searchParams.delete('room');
+        break;
+      case 'roomList':
+        url.searchParams.set('page', 'rooms');
+        url.searchParams.delete('room');
+        break;
+      case 'game':
+        url.searchParams.set('page', 'game');
+        if (roomId) {
+          url.searchParams.set('room', roomId);
+        }
+        break;
+    }
+    
+    window.history.pushState({}, '', url.toString());
+  };
 
   const handleConnect = async (url: string, name: string) => {
     setLoading(true);
@@ -65,7 +102,7 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.IS_ADMIN, String(isAdminAccount));
       
       if (isAdminAccount) {
-        console.log('[App] Admin login successful for account:', name);
+        logger.log('[App] Admin login successful for account:', name);
       }
 
       // 保存到 localStorage
@@ -73,9 +110,10 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
       setPage('roomList');
+      updateURL('roomList');
     } catch (err) {
       setLoading(false);
-      console.error('[App] Connection failed:', err);
+      logger.error('[App] Connection failed:', err);
     }
   };
 
@@ -92,6 +130,7 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'false');
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
+      updateURL('game', roomId);
     } else {
       alert(socket.error || '房间不存在，请检查房间ID或创建新房间。');
     }
@@ -110,6 +149,7 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'false');
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
+      updateURL('game', result.roomId);
     }
   };
 
@@ -126,6 +166,7 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.IS_SPECTATOR, 'true');
       localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'game');
       setPage('game');
+      updateURL('game', roomId);
     }
   };
 
@@ -134,10 +175,11 @@ function App() {
     localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, newNickname);
   };
 
+
   const handleMove = async (x: number, y: number) => {
-    console.log(`[App] Making move at (${x}, ${y}), playerColor:`, gameState.playerColor);
+    logger.log(`[App] Making move at (${x}, ${y}), playerColor:`, gameState.playerColor);
     if (gameState.gameState && gameState.playerColor) {
-      console.log(`[App] Emitting move event to socket`);
+      logger.log(`[App] Emitting move event to socket`);
       await socket.makeMove(gameState.gameState.roomId, x, y);
     }
   };
@@ -159,6 +201,7 @@ function App() {
     localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
     localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
     setPage('roomList');
+    updateURL('roomList');
 
     // 立即刷新房间列表，确保UI更新（仅在socket连接时）
     if (socket.connected) {
@@ -182,6 +225,7 @@ function App() {
     localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
     localStorage.removeItem(STORAGE_KEYS.IS_ADMIN);
     setPage('connect');
+    updateURL('connect');
   };
 
   const handleCloseRoom = async (roomId: string) => {
@@ -297,6 +341,7 @@ function App() {
                     localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
                     localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
                     setPage('roomList');
+                    updateURL('roomList');
                   }
                 } else if (savedPlayerColor === '1' || savedPlayerColor === '2') {
                   const result = await socket.joinRoom(savedRoomId, playerName);
@@ -310,10 +355,12 @@ function App() {
                     localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
                     localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
                     setPage('roomList');
+                    updateURL('roomList');
                   }
                 } else {
                   // 没有有效的玩家颜色，返回房间列表
                   setPage('roomList');
+                  updateURL('roomList');
                 }
               } catch (err) {
                 console.error('[App] Failed to rejoin room:', err);
@@ -323,10 +370,12 @@ function App() {
                 localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
                 localStorage.setItem(STORAGE_KEYS.PAGE_STATE, 'roomList');
                 setPage('roomList');
+                updateURL('roomList');
               }
             } else {
               // 没有房间ID，返回房间列表
               setPage('roomList');
+              updateURL('roomList');
             }
           }
         } catch (err) {
@@ -340,6 +389,7 @@ function App() {
           localStorage.removeItem(STORAGE_KEYS.IS_SPECTATOR);
           setLoading(false);
           setPage('connect');
+          updateURL('connect');
         }
       }
     };
@@ -438,17 +488,57 @@ function App() {
 
 
       {page === 'game' && gameState.gameState && (
-        <div className="min-h-screen py-6 relative" style={{ backgroundImage: 'url(/room-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', paddingRight: '420px' }}>
-          <div className="mb-4 flex justify-between items-center">
-            <h1 className="text-3xl font-bold">
-              五子棋 - 天王山之战
-            </h1>
-            <div className="flex gap-2 items-center">
+        <div className="min-h-screen relative" style={{ 
+          backgroundImage: 'url(/room-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}>
+          {/* 顶部标题栏 - 水墨风格 */}
+          <div className="px-8 py-4 flex justify-between items-center" style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(5px)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 50
+          }}>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <span className="text-3xl">🎯</span>
+                五子棋 - 天王山之战
+              </h1>
+              <div className="px-3 py-1 rounded-full text-xs font-medium" style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#60a5fa'
+              }}>
+                房间: {gameState.gameState.roomId}
+              </div>
+            </div>
+            <div className="flex gap-3 items-center">
               {!gameState.isSpectator && (
                 <button
                   onClick={handleSwitchToSpectator}
-                  className="btn-secondary text-sm"
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
+                  style={{
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    color: '#a78bfa',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.5 : 1
+                  }}
                   disabled={loading}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
                 >
                   👁️ 切换观战
                 </button>
@@ -456,58 +546,106 @@ function App() {
 
               <button
                 onClick={handleBackToRoomList}
-                className="btn-secondary text-sm"
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: '#f87171'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
               >
-                返回主页
+                🏠 返回主页
               </button>
             </div>
           </div>
 
-          <div className="flex gap-4 max-w-7xl mx-auto px-2 justify-center items-start pt-12" style={{ minHeight: 'calc(100vh - 160px)' }}>
-            {/* Left Side Panel - 与棋盘高度对齐 */}
-            <div className="w-56 flex-shrink-0" style={{ height: '750px', marginTop: '60px' }}>
-              <LeftSidePanel
-                gameState={gameState.gameState}
-                playerColor={gameState.playerColor}
-                playerName={playerName}
-                isSpectator={gameState.isSpectator}
-              />
-            </div>
-
-            {/* Game Board - Center */}
-            <div className="flex-shrink-0 flex flex-col items-center">
-              <GameBoard
-                gameState={gameState.gameState}
-                playerColor={gameState.playerColor}
-                isCurrentPlayer={isCurrentPlayer}
-                onMove={handleMove}
-                onGameFinished={() => {
-                  console.log('[App] Game finished, reloading leaderboard');
-                }}
-              />
-              {/* Spectator Panel - Below Game Board */}
-              <div className="mt-4" style={{ width: '750px' }}>
-                <SpectatorPanel
+          {/* 主游戏区域 - 水墨风格布局 */}
+          <div className="px-8 py-6" style={{ minHeight: 'calc(100vh - 80px)' }}>
+            <div className="flex gap-6 justify-center items-start">
+              {/* 左侧面板 - 水墨风格 */}
+              <div className="flex-shrink-0 rounded-xl p-4" style={{
+                width: '260px',
+                height: 'auto',
+                background: 'rgba(0, 0, 0, 0.2)',
+                backdropFilter: 'blur(5px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                marginTop: '170px'
+              }}>
+                <LeftSidePanel
                   gameState={gameState.gameState}
+                  playerColor={gameState.playerColor}
+                  playerName={playerName}
                   isSpectator={gameState.isSpectator}
-                  onJoinAsPlayer={handleJoinAsPlayer}
-                  boardWidth="750px"
+                />
+              </div>
+
+              {/* 中间棋盘区域 - 水墨风格 */}
+              <div className="flex-shrink-0 flex flex-col items-center" style={{ gap: '20px' }}>
+                {/* 棋盘容器 - 水墨风格 */}
+                <div className="rounded-xl p-4" style={{
+                  background: 'rgba(0, 0, 0, 0.15)',
+                  backdropFilter: 'blur(5px)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <GameBoard
+                    gameState={gameState.gameState}
+                    playerColor={gameState.playerColor}
+                    isCurrentPlayer={isCurrentPlayer}
+                    onMove={handleMove}
+                    onGameFinished={() => {
+                      console.log('[App] Game finished, reloading leaderboard');
+                    }}
+                  />
+                </div>
+
+                {/* 观战面板 - 水墨风格 */}
+                <div className="rounded-xl p-4" style={{
+                  width: '750px',
+                  height: 'auto',
+                  maxHeight: '200px',
+                  overflow: 'hidden',
+                  background: 'rgba(0, 0, 0, 0.15)',
+                  backdropFilter: 'blur(5px)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+                }}>
+                  <SpectatorPanel
+                    gameState={gameState.gameState}
+                    isSpectator={gameState.isSpectator}
+                    onJoinAsPlayer={handleJoinAsPlayer}
+                    boardWidth="750px"
+                  />
+                </div>
+              </div>
+
+              {/* 右侧面板 - 水墨风格 */}
+              <div className="flex-shrink-0 rounded-xl p-4" style={{
+                width: '281.33px',
+                height: '783.33px',
+                background: 'rgba(0, 0, 0, 0.2)',
+                backdropFilter: 'blur(5px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                marginTop: '60px'
+              }}>
+                <RightSidePanel
+                  gameState={gameState.gameState}
+                  playerName={playerName}
+                  messages={gameState.messages}
+                  isSpectator={gameState.isSpectator}
+                  onSendMessage={handleSendMessage}
                 />
               </div>
             </div>
-
-{/* Right Side Panel */}
-          <div className="flex-shrink-0 flex flex-col" style={{ width: '260px', height: '750px', marginTop: '58px', gap: '16px' }}>
-            <RightSidePanel
-              gameState={gameState.gameState}
-              playerName={playerName}
-              messages={gameState.messages}
-              isSpectator={gameState.isSpectator}
-              onSendMessage={handleSendMessage}
-            />
-          </div>
-
-
           </div>
         </div>
       )}
@@ -522,12 +660,22 @@ function App() {
         />
       )}
 
-      {/* Music Player - Only show on game page (using fixed positioning) */}
-      {page === 'game' && (
-        <div className="music-player-sidebar-game-room">
-          <MusicPlayer />
-        </div>
-      )}
+      {/* Music Player Components - Show on all pages */}
+      <>
+        {/* Mini Player - Fixed at bottom right */}
+        <MiniPlayer onOpenFullPlayer={() => {
+          console.log('[App] Opening full player, current showFullPlayer:', showFullPlayer);
+          setShowFullPlayer(true);
+        }} />
+
+        {/* Full Player - Modal */}
+        {showFullPlayer && (
+          <FullPlayer onClose={() => {
+            console.log('[App] Closing full player');
+            setShowFullPlayer(false);
+          }} />
+        )}
+      </>
       </div>
     </div>
   );

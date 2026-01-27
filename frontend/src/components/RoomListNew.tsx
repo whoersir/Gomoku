@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Room } from '../types';
-import MusicPlayer from './MusicPlayer';
 import { getBackendUrl } from '../services/apiConfig';
 
 interface RoomListProps {
@@ -521,13 +520,6 @@ export const RoomListNew: React.FC<RoomListProps> = ({
             </div>
           </div>
         )}
-
-        {/* Music Player Card */}
-        <div className="glass-card music-player-card">
-          <div className="glass-card-content" style={{ transform: 'translateY(0)', opacity: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <MusicPlayer />
-          </div>
-        </div>
       </div>
     </>
   );

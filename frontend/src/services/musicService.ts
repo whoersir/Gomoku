@@ -94,6 +94,55 @@ class MusicService {
   }
 
   /**
+   * 获取所有音乐（按A-Z排序）
+   */
+  async getAllMusicSorted(
+    sortBy: 'title' | 'artist' | 'album' = 'title',
+    limit: number = 999999
+  ): Promise<MusicTrack[]> {
+    try {
+      // 直接调用后端的 /api/music/all API
+      const response = await fetch(`/api/music/all?limit=${limit}&sortBy=${sortBy}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch music list: ${response.status}`);
+      }
+
+      const localTracks: any[] = await response.json();
+
+      console.log(`[musicService] 获取到 ${localTracks.length} 首歌曲 (排序: ${sortBy})`);
+
+      if (localTracks.length > 0) {
+        console.log('[musicService] 第一首歌示例:', {
+          id: localTracks[0].id,
+          title: localTracks[0].title,
+          url: localTracks[0].url,
+          cover: localTracks[0].cover
+        });
+      }
+
+      // 转换为前端使用的 MusicTrack 格式
+      const tracks = localTracks.map((track: any) => ({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration,
+        url: track.url,
+        cover: track.cover || 'https://picsum.photos/64/64'
+      }));
+
+      console.log('[musicService] 转换后的第一首歌:', tracks[0]);
+
+      return tracks;
+    } catch (error) {
+      console.error('[musicService] Get all music sorted error:', error);
+      // 降级到预设播放列表
+      return this.getPresetPlaylist();
+    }
+  }
+
+  /**
    * 获取本地音乐列表
    */
   async getAllMusic(limit: number = 50): Promise<MusicTrack[]> {

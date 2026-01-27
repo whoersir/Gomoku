@@ -12,6 +12,7 @@ interface LocalMusicTrack {
   url: string;
   cover?: string;
   hasCover?: boolean;
+  lrc?: string; // 歌词文件 URL
 }
 
 // 获取音乐目录 - 优先级: 环境变量 > F:\Music > 用户主目录下的 Music
@@ -20,21 +21,26 @@ const getMusicDir = (): string => {
   if (envDir && fs.existsSync(envDir)) {
     return envDir;
   }
-  
+
   // Windows 默认路径
   const windowsPath = 'F:\\Music';
   if (fs.existsSync(windowsPath)) {
     return windowsPath;
   }
-  
+
   // 用户主目录下的 Music 文件夹
   const userMusicDir = path.join(os.homedir(), 'Music');
   if (fs.existsSync(userMusicDir)) {
     return userMusicDir;
   }
-  
+
   // 如果都不存在，返回默认值（会在运行时检查）
   return windowsPath;
+};
+
+// 检查是否禁用本地音乐库
+const isLocalMusicDisabled = (): boolean => {
+  return process.env.DISABLE_LOCAL_MUSIC === 'true';
 };
 
 const MUSIC_DIR = getMusicDir();
@@ -45,12 +51,20 @@ class LocalMusicService {
   private musicCache: LocalMusicTrack[] = [];
   private lastCacheTime: number = 0;
   private initialized: boolean = false;
+  private disabled: boolean = isLocalMusicDisabled();
 
   /**
    * 初始化：在服务器启动时预加载所有音乐
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
+      return;
+    }
+
+    // 检查是否禁用本地音乐
+    if (this.disabled) {
+      console.log('[LocalMusic] ⚠️  本地音乐库已禁用');
+      this.initialized = true;
       return;
     }
 
@@ -63,6 +77,7 @@ class LocalMusicService {
       this.initialized = true;
     } catch (error) {
       process.stdout.write(`[LocalMusic] error\n`);
+      console.error('[LocalMusic] 初始化错误:', error);
     }
   }
 
@@ -75,6 +90,15 @@ class LocalMusicService {
     try {
       // 检查目录是否存在
       if (!fs.existsSync(MUSIC_DIR)) {
+        console.warn(`[LocalMusic] ⚠️  音乐目录不存在: ${MUSIC_DIR}`);
+        return [];
+      }
+
+      // 检查是否有读取权限
+      try {
+        fs.accessSync(MUSIC_DIR, fs.constants.R_OK);
+      } catch (accessError) {
+        console.error(`[LocalMusic] ❌ 无法访问音乐目录: ${MUSIC_DIR}`, accessError);
         return [];
       }
 
@@ -117,6 +141,13 @@ class LocalMusicService {
                 const encodedPath = encodeURIComponent(filePath);
                 const streamUrl = `/api/music/stream?path=${encodedPath}`;
 
+                // 查找对应的歌词文件
+                const lrcFilePath = filePath.replace(ext, '.lrc');
+                let lrcUrl: string | undefined;
+                if (fs.existsSync(lrcFilePath)) {
+                  lrcUrl = `/api/music/lrc?path=${encodedPath}`;
+                }
+
                 const track: LocalMusicTrack = {
                   id: `local_${Date.now()}_${Math.random()}`,
                   title: metadata.common?.title || path.basename(file, ext),
@@ -124,7 +155,8 @@ class LocalMusicService {
                   album: metadata.common?.album || 'Local Music',
                   duration: Math.floor((metadata.format?.duration || 0) * 1000),
                   url: streamUrl,
-                  cover: coverUrl
+                  cover: coverUrl,
+                  lrc: lrcUrl
                 };
 
                 if (tracks.length % 20 === 0) {
@@ -178,18 +210,54 @@ class LocalMusicService {
   }
 
   /**
+   * 获取所有音乐（按 A-Z 排序）
+   */
+  async getAllMusicSorted(
+    limit: number = 50,
+    sortBy: 'title' | 'artist' | 'album' = 'title'
+  ): Promise<LocalMusicTrack[]> {
+    try {
+      const allMusic = await this.getMusicList();
+      
+      // 按 A-Z 排序
+      const sortedMusic = allMusic.sort((a, b) => {
+        switch (sortBy) {
+          case 'title':
+            return a.title.localeCompare(b.title, 'zh');
+          case 'artist':
+            return a.artist.localeCompare(b.artist, 'zh');
+          case 'album':
+            return a.album.localeCompare(b.album, 'zh');
+          default:
+            return 0;
+        }
+      });
+      
+      return sortedMusic.slice(0, limit);
+    } catch (error) {
+      console.error('[LocalMusic] 获取所有音乐失败:', error);
+      return [];
+    }
+  }
+
+  /**
    * 搜索本地音乐
    */
   async searchMusic(keyword: string, limit: number = 10): Promise<LocalMusicTrack[]> {
     try {
+      // 如果本地音乐库被禁用，返回空数组
+      if (this.disabled) {
+        return [];
+      }
+
       const allMusic = await this.getMusicList();
-      
+
       if (!keyword || !keyword.trim()) {
         return allMusic.slice(0, limit);
       }
 
       const lowerKeyword = keyword.toLowerCase();
-      
+
       // 搜索标题、艺术家、专辑
       const results = allMusic.filter(track =>
         track.title.toLowerCase().includes(lowerKeyword) ||
@@ -199,6 +267,7 @@ class LocalMusicService {
 
       return results.slice(0, limit);
     } catch (error) {
+      console.error('[LocalMusic] 搜索错误:', error);
       return [];
     }
   }
@@ -223,6 +292,19 @@ class LocalMusicService {
       lastCacheTime: this.lastCacheTime,
       cacheExpired: this.musicCache.length > 0 && (Date.now() - this.lastCacheTime) > MUSIC_CACHE_TIME
     };
+  }
+
+  /**
+   * 获取本地音乐列表
+   */
+  async getAllMusic(limit: number = 50): Promise<LocalMusicTrack[]> {
+    try {
+      const allMusic = await this.getMusicList();
+      return allMusic.slice(0, limit);
+    } catch (error) {
+      console.error('[LocalMusic] 获取所有音乐失败:', error);
+      return [];
+    }
   }
 }
 

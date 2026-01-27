@@ -295,19 +295,29 @@ app.get('/api/music/stream', async (req, res) => {
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       const chunksize = end - start + 1;
 
+      // 限制单次请求的数据块大小，减少客户端缓冲
+      const MAX_CHUNK_SIZE = 512 * 1024; // 512KB
+      const adjustedEnd = Math.min(end, start + MAX_CHUNK_SIZE - 1);
+
       res.writeHead(206, {
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Content-Range': `bytes ${start}-${adjustedEnd}/${fileSize}`,
         'Accept-Ranges': 'bytes',
-        'Content-Length': chunksize,
+        'Content-Length': adjustedEnd - start + 1,
         'Content-Type': contentType,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       });
 
-      const stream = fs.createReadStream(decodedPath, { start, end });
+      const stream = fs.createReadStream(decodedPath, { start, end: adjustedEnd });
       stream.pipe(res);
     } else {
       res.writeHead(200, {
         'Content-Length': fileSize,
         'Content-Type': contentType,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       });
 
       const stream = fs.createReadStream(decodedPath);
@@ -318,6 +328,47 @@ app.get('/api/music/stream', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).send('Internal server error');
     }
+  }
+});
+
+// 本地歌词文件
+app.get('/api/music/lrc', async (req, res) => {
+  const { path: filePath } = req.query;
+
+  if (!filePath || typeof filePath !== 'string') {
+    res.status(400).send('Missing file path');
+    return;
+  }
+
+  try {
+    // 解码文件路径
+    const decodedPath = decodeURIComponent(filePath);
+
+    // 安全检查：确保路径在允许的目录内
+    const musicDir = getMusicDir();
+    const fs = require('fs');
+    const path = require('path');
+
+    if (!decodedPath.startsWith(musicDir)) {
+      console.error('[API] Invalid file path:', decodedPath);
+      res.status(403).send('Access denied');
+      return;
+    }
+
+    // 检查文件是否存在
+    if (!fs.existsSync(decodedPath)) {
+      console.error('[API] LRC file not found:', decodedPath);
+      res.status(404).send('File not found');
+      return;
+    }
+
+    // 读取歌词文件内容
+    const lrcContent = fs.readFileSync(decodedPath, 'utf-8');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.send(lrcContent);
+  } catch (error) {
+    console.error('[API] Error serving LRC file:', error);
+    res.status(500).send('Internal server error');
   }
 });
 
@@ -350,21 +401,62 @@ app.get('/api/music/local', async (req, res) => {
   }
 });
 
+// 健康检查 - 用于诊断音乐库问题
+app.get('/api/music/health', (req, res) => {
+  try {
+    const status = localMusicService.getStatus();
+    res.json({
+      healthy: true,
+      status: status,
+      message: '音乐库服务正常'
+    });
+  } catch (error) {
+    res.status(500).json({
+      healthy: false,
+      error: error instanceof Error ? error.message : '未知错误',
+      message: '音乐库服务异常'
+    });
+  }
+});
+
+// 获取所有音乐（按 A-Z 排序）
+app.get('/api/music/all', async (req, res) => {
+  const { limit = '999999', sortBy = 'title' } = req.query;
+
+  try {
+    const results = await localMusicService.getAllMusicSorted(
+      parseInt(limit.toString()) || 999999,
+      sortBy as 'title' | 'artist' | 'album'
+    );
+    
+    console.log(`[API] 📚 获取所有音乐: ${results.length} 首歌曲 (排序: ${sortBy})`);
+    res.json(Array.isArray(results) ? results : []);
+  } catch (error) {
+    console.error('[API] ❌ 获取所有音乐错误:', error);
+    res.json([]);
+  }
+});
+
 // 刷新音乐缓存
 app.post('/api/music/refresh', async (req, res) => {
   try {
     console.log('[API] 🔄 刷新音乐缓存...');
     localMusicService.refreshCache();
-    const results = await localMusicService.searchMusic('', 999999);
-    console.log(`[API] ✅ 音乐库已刷新: ${results.length} 首歌曲`);
+    
+    // 重新扫描并获取最新的音乐列表
+    const allMusic = await localMusicService.getAllMusicSorted(999999, 'title');
+    
+    console.log(`[API] ✅ 音乐库已刷新: ${allMusic.length} 首歌曲`);
 
     // 重置日志标志，允许下次加载时打印
     musicListLogged = false;
 
+    // 返回刷新后的音乐列表，前端可以直接使用
     res.json({
       success: true,
-      count: results.length,
-      message: `已刷新音乐库，共 ${results.length} 首歌曲`
+      count: allMusic.length,
+      message: `已刷新音乐库，共 ${allMusic.length} 首歌曲`,
+      data: allMusic
     });
   } catch (error) {
     console.error('[API] ❌ 刷新音乐库失败:', error);

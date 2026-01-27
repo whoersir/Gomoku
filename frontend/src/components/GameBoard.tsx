@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { GameState } from '../types';
 
 interface GameBoardProps {
@@ -10,7 +10,7 @@ interface GameBoardProps {
   onGameFinished: () => void; // 添加回调函数
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({
+const GameBoardInternal: React.FC<GameBoardProps> = ({
   gameState,
   playerColor,
   isCurrentPlayer,
@@ -182,3 +182,34 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     </div>
   );
 };
+
+// 使用React.memo优化，避免不必要的重渲染
+export const GameBoard = memo(GameBoardInternal, (prevProps, nextProps) => {
+  // 深度比较gameState
+  if (prevProps.gameState === nextProps.gameState) return true;
+  if (prevProps.playerColor !== nextProps.playerColor) return false;
+  if (prevProps.isCurrentPlayer !== nextProps.isCurrentPlayer) return false;
+
+  // 如果gameState存在，比较board
+  if (prevProps.gameState && nextProps.gameState) {
+    const prevBoard = prevProps.gameState.board;
+    const nextBoard = nextProps.gameState.board;
+    if (prevBoard.length !== nextBoard.length) return false;
+
+    // 比较棋盘内容
+    for (let i = 0; i < prevBoard.length; i++) {
+      for (let j = 0; j < prevBoard[i].length; j++) {
+        if (prevBoard[i][j] !== nextBoard[i][j]) return false;
+      }
+    }
+
+    // 比较其他关键属性
+    if (prevProps.gameState.status !== nextProps.gameState.status) return false;
+    if (prevProps.gameState.currentPlayer !== nextProps.gameState.currentPlayer) return false;
+    if (prevProps.gameState.winner !== nextProps.gameState.winner) return false;
+
+    return true;
+  }
+
+  return false;
+});
