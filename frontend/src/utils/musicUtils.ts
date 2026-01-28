@@ -20,7 +20,7 @@ export const groupTracksByArtist = (tracks: MusicTrack[]) => {
       tracks: tracks.sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0)),
       count: tracks.length,
     }))
-    .sort((a, b) => a.artist.localeCompare(b.artist, 'zh'));
+    .sort((a, b) => a.artist.localeCompare(b.artist, 'en'));
 };
 
 // 搜索歌曲

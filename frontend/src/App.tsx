@@ -323,7 +323,7 @@ function App() {
   useEffect(() => {
     const restoreConnection = async () => {
       // 如果有保存的连接信息和页面状态，尝试恢复连接
-      const urlToConnect = serverUrl || getBackendUrl();
+      const urlToConnect = (serverUrl || getBackendUrl()).replace(/\/$/, '');
       if (playerName && (page === 'roomList' || page === 'game')) {
         console.log('[App] Restoring connection from localStorage...', urlToConnect);
         try {

@@ -35,7 +35,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ isOpen, onClose, embed
     setError(null);
     try {
       // 添加缓存破坏参数以确保获取最新数据
-      const backendUrl = getBackendUrl();
+      const backendUrl = getBackendUrl().replace(/\/$/, '');
       const response = await fetch(
         `${backendUrl}/api/leaderboard?limit=10&timestamp=${Date.now()}`
       );

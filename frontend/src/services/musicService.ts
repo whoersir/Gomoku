@@ -101,11 +101,11 @@ class MusicService {
    */
   async getAllMusicSorted(
     sortBy: 'title' | 'artist' | 'album' = 'title',
-    limit: number = 999999
+    limit: number = 1000
   ): Promise<MusicTrack[]> {
     try {
-      // 直接调用后端的 /api/music/all API
-      const response = await fetch(`/api/music/all?limit=${limit}&sortBy=${sortBy}`);
+      // 直接调用后端的 /api/music/all API（包含封面数据）
+      const response = await fetch(`/api/music/all?limit=${limit}&sortBy=${sortBy}&includeCoverData=true`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch music list: ${response.status}`);
@@ -124,6 +124,11 @@ class MusicService {
         });
       }
 
+      // 获取后端基础URL
+      const backendUrl = window.location.origin.includes(':5173')
+        ? window.location.origin.replace(':5173', ':3000')
+        : `${window.location.protocol}//${window.location.hostname}:3000`;
+
       // 转换为前端使用的 MusicTrack 格式
       const tracks = localTracks.map((track: any) => ({
         id: track.id,
@@ -131,7 +136,7 @@ class MusicService {
         artist: track.artist,
         album: track.album,
         duration: track.duration,
-        url: track.url,
+        url: track.url.startsWith('http') ? track.url : `${backendUrl}${track.url}`,
         cover: track.cover || 'https://picsum.photos/64/64',
       }));
 

@@ -66,26 +66,12 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
 
     // 监听音频事件
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
+      setCurrentTime(audio.currentTime * 1000); // 转换为毫秒，与duration保持一致
     };
 
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
+      setDuration(audio.duration * 1000); // 转换为毫秒，与后端保持一致
       setIsLoading(false);
-    };
-
-    const handleEnded = () => {
-      if (playMode === 'single') {
-        // 单曲循环，重新播放当前歌曲
-        if (audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else {
-        // 自动播放下一首
-        nextTrack();
-      }
     };
 
     const handleError = (e: Event) => {
@@ -95,16 +81,37 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
   }, []);
+
+  // 单独处理播放结束事件（依赖playMode和nextTrack）
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      if (playMode === 'single') {
+        // 单曲循环，重新播放当前歌曲
+        audio.currentTime = 0;
+        audio.play();
+        setIsPlaying(true);
+      } else {
+        // 自动播放下一首
+        nextTrack();
+      }
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [playMode, nextTrack]);
 
   // 加载音乐列表
   useEffect(() => {
@@ -148,6 +155,11 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
         const result = await response.json();
         console.log('[useMusicPlayer] 后端音乐库刷新成功:', result.count);
 
+        // 获取后端基础URL
+        const backendUrl = window.location.origin.includes(':5173')
+          ? window.location.origin.replace(':5173', ':3000')
+          : `${window.location.protocol}//${window.location.hostname}:3000`;
+
         // 直接使用刷新API返回的音乐列表
         const allMusic = result.data.map((track: any) => ({
           id: track.id,
@@ -155,7 +167,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
           artist: track.artist,
           album: track.album,
           duration: track.duration,
-          url: track.url,
+          url: track.url.startsWith('http') ? track.url : `${backendUrl}${track.url}`,
           cover: track.cover || 'https://picsum.photos/64/64',
         }));
 
@@ -269,11 +281,12 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     playTrack(prevIndex);
   }, [currentTrackIndex, musicList.length, playTrack]);
 
-  // 跳转到指定时间
+  // 跳转到指定时间（time参数为毫秒，需要转换为秒设置给audio）
   const seekTo = useCallback((time: number) => {
     if (!audioRef.current) return;
 
-    audioRef.current.currentTime = time;
+    const timeInSeconds = time / 1000;
+    audioRef.current.currentTime = timeInSeconds;
     setCurrentTime(time);
 
     // 保存播放进度
@@ -315,12 +328,15 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     }
   }, [isMuted]);
 
-  // 格式化时间显示
+  // 格式化时间显示（支持毫秒和秒两种格式）
   const formatTime = useCallback((time: number): string => {
-    if (isNaN(time)) return '0:00';
+    if (isNaN(time) || time < 0) return '0:00';
 
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
+    // 检测是否为毫秒（大于10000认为是毫秒）
+    const timeInSeconds = time > 10000 ? time / 1000 : time;
+
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
 
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, []);

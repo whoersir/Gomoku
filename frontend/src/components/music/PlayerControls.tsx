@@ -140,7 +140,7 @@ export const PlayerControls: React.FC = () => {
       {/* 控制按钮 */}
       <div className="flex items-center justify-between">
         {/* 左侧：音量控制 */}
-        <div className="flex items-center gap-2" ref={volumeSliderRef}>
+        <div className="flex items-center gap-2 relative" ref={volumeSliderRef}>
           <button
             onClick={() => {
               toggleMute();

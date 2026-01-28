@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { MusicTrack } from '../../types/musicTypes';
 import { useMusicPlayer } from '../../hooks/useMusicPlayer';
 import { useFavorites } from '../../hooks/useFavorites';
 import { searchTracks } from '../../utils/musicUtils';
+import { pinyin } from 'pinyin-pro';
 
 interface AllSongsViewProps {
   tracks: MusicTrack[];
@@ -17,19 +18,64 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('title');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 获取歌曲的首字母（支持中文转拼音，按歌曲名）
+  const getTrackFirstLetter = useMemo(() => {
+    return (trackTitle: string): string => {
+      if (!trackTitle) return '#';
+
+      const firstChar = trackTitle.charAt(0);
+
+      // 英文字母
+      if (/[a-zA-Z]/.test(firstChar)) {
+        return firstChar.toUpperCase();
+      }
+
+      // 数字
+      if (/[0-9]/.test(firstChar)) {
+        return '#';
+      }
+
+      // 中文转拼音首字母
+      try {
+        const pinyinResult = pinyin(firstChar);
+        if (pinyinResult && typeof pinyinResult === 'string' && pinyinResult.length > 0) {
+          const letter = pinyinResult.charAt(0).toUpperCase();
+          if (/[A-Z]/.test(letter)) {
+            return letter;
+          }
+        }
+      } catch (error) {
+        console.warn('拼音转换失败:', firstChar, error);
+      }
+
+      // 其他字符
+      return '#';
+    };
+  }, []);
 
   const filteredAndSorted = useMemo(() => {
-    const result = searchTracks(tracks, searchQuery);
+    let result = searchTracks(tracks, searchQuery);
+
+    // 按字母筛选
+    if (selectedLetter) {
+      result = result.filter((track) => {
+        const letter = getTrackFirstLetter(track.title);
+        return letter === selectedLetter;
+      });
+    }
 
     // 排序
     result.sort((a, b) => {
       switch (sortBy) {
         case 'title':
-          return a.title.localeCompare(b.title, 'zh');
+          return a.title.localeCompare(b.title, 'en');
         case 'artist':
-          return a.artist.localeCompare(b.artist, 'zh');
+          return a.artist.localeCompare(b.artist, 'en');
         case 'album':
-          return a.album.localeCompare(b.album, 'zh');
+          return a.album.localeCompare(b.album, 'en');
         case 'duration':
           return (a.duration || 0) - (b.duration || 0);
         default:
@@ -38,7 +84,7 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
     });
 
     return result;
-  }, [tracks, searchQuery, sortBy]);
+  }, [tracks, searchQuery, sortBy, selectedLetter, getTrackFirstLetter]);
 
   const handlePlayTrack = (track: MusicTrack) => {
     const index = musicList.findIndex((t) => t.id === track.id);
@@ -56,6 +102,40 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
     }, 1000);
   };
 
+  // 计算所有存在的字母
+  const availableLetters = useMemo(() => {
+    const letters = new Set<string>();
+    const allTracks = searchTracks(tracks, '');
+    allTracks.forEach((track) => {
+      const letter = getTrackFirstLetter(track.title);
+      letters.add(letter);
+    });
+    // 排序：A-Z 在前，# 在最后
+    const sortedLetters = Array.from(letters).sort((a, b) => {
+      if (a === '#') return 1;
+      if (b === '#') return -1;
+      return a.localeCompare(b);
+    });
+    return sortedLetters;
+  }, [tracks, getTrackFirstLetter]);
+
+  // 处理字母筛选
+  const handleLetterSelect = (letter: string | null) => {
+    setSelectedLetter(letter);
+    // 如果是点击"全部"，滚动到顶部
+    if (letter === null && containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // 搜索时清除字母筛选
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      setSelectedLetter(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* 搜索和排序栏 */}
@@ -65,12 +145,15 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
             type="text"
             placeholder="搜索歌曲名、艺术家或专辑..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-400"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedLetter(null);
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
             >
               ✕
@@ -123,6 +206,33 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
         </button>
       </div>
 
+      {/* 横向导航栏 */}
+      <div className="flex flex-wrap gap-1 py-2 px-1 mb-3">
+        <button
+          onClick={() => handleLetterSelect(null)}
+          className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
+            selectedLetter === null
+              ? 'bg-blue-500 text-white'
+              : 'bg-white/10 text-gray-300 hover:bg-white/20'
+          }`}
+        >
+          全部
+        </button>
+        {availableLetters.map((letter) => (
+          <button
+            key={letter}
+            onClick={() => handleLetterSelect(letter)}
+            className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
+              selectedLetter === letter
+                ? 'bg-blue-500 text-white'
+                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
+          >
+            {letter}
+          </button>
+        ))}
+      </div>
+
       {/* 刷新提示 */}
       {isRefreshing && (
         <div className="mb-3 px-4 py-3 bg-blue-500/20 border border-blue-500/30 rounded-lg flex items-center gap-2">
@@ -158,7 +268,7 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-1">
+        <div ref={containerRef} className="flex-1 overflow-y-auto space-y-1">
           {filteredAndSorted.map((track, index) => {
             const isPlaying = currentTrack?.id === track.id;
             const favorite = isFavorite(track.id);

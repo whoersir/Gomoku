@@ -17,7 +17,7 @@ interface ConnectDialogProps {
   error: string | null;
 }
 
-const SERVER_URL = getBackendUrl();
+const SERVER_URL = getBackendUrl().replace(/\/$/, '');
 
 export const ConnectDialog: React.FC<ConnectDialogProps> = ({ onConnect, loading, error }) => {
   const [playerName, setPlayerName] = useState('');

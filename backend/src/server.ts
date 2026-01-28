@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
@@ -11,6 +12,8 @@ import { PlayerManager } from './managers/PlayerManager';
 import { SocketHandlers } from './socket/handlers';
 import { supabaseService } from './services/supabaseService';
 import { localMusicService } from './services/localMusicService';
+import { musicSyncService } from './services/musicSyncService';
+import { fileWatcherService } from './services/fileWatcherService';
 import { log } from './utils/logger';
 
 // 用于避免重复打印音乐库加载日志
@@ -76,6 +79,23 @@ historyManager.initialize().catch((err) => log.error('Failed to initialize histo
 localMusicService
   .initialize()
   .catch((err) => log.error('Failed to initialize local music service:', err));
+
+// Sync music library to database on startup (optional)
+log.info(`[Startup] 环境变量 ENABLE_STARTUP_SYNC=${process.env.ENABLE_STARTUP_SYNC || '未设置'}, ENABLE_FILE_WATCHER=${process.env.ENABLE_FILE_WATCHER || '未设置'}`);
+if (process.env.ENABLE_STARTUP_SYNC === 'true') {
+  musicSyncService
+    .syncMusicLibrary()
+    .then((result) => {
+      if (result.errors.length === 0) {
+        log.info(`[Startup] ✅ 音乐库同步完成: ${result.added} 新增, ${result.updated} 更新, ${result.deleted} 删除`);
+      } else {
+        log.warn(`[Startup] ⚠️  音乐库同步完成但有 ${result.errors.length} 个错误`);
+      }
+    })
+    .catch((err) => log.error('Failed to sync music library:', err));
+} else {
+  log.info('[Startup] 启动时音乐库同步已禁用 (设置 ENABLE_STARTUP_SYNC=true 启用)');
+}
 
 // REST API routes
 app.get('/api/health', (req, res) => {
@@ -243,6 +263,28 @@ app.get('/api/player/:id', async (req, res) => {
 
 // ========== 音乐搜索代理API ==========
 
+// 测试路径检查
+app.get('/api/music/test-path', (req, res) => {
+  const { path: testPath } = req.query;
+
+  const musicDir = getMusicDir();
+  const decodedPath = testPath ? decodeURIComponent(testPath as string) : 'F:\\Music\\林俊杰\\2008-JJ陆\\林俊杰-06Always Online.mp3';
+
+  const normalizedMusicDir = musicDir.replace(/\\/g, '/').toLowerCase();
+  const normalizedDecodedPath = decodedPath.replace(/\\/g, '/').toLowerCase();
+
+  res.json({
+    musicDir,
+    decodedPath,
+    normalizedMusicDir,
+    normalizedDecodedPath,
+    startsWith: normalizedDecodedPath.startsWith(normalizedMusicDir),
+    musicDirExists: fs.existsSync(musicDir),
+    decodedPathExists: fs.existsSync(decodedPath),
+    envMusicDir: process.env.MUSIC_DIR || 'not set'
+  });
+});
+
 // 本地音乐流 - 用于播放本地音乐文件
 app.get('/api/music/stream', async (req, res) => {
   const { path: filePath } = req.query;
@@ -258,9 +300,15 @@ app.get('/api/music/stream', async (req, res) => {
 
     // 安全检查：确保路径在允许的目录内
     const musicDir = getMusicDir();
+    // 统一使用正斜杠进行比较（处理Windows路径分隔符差异）
+    const normalizedMusicDir = musicDir.replace(/\\/g, '/').toLowerCase();
+    const normalizedDecodedPath = decodedPath.replace(/\\/g, '/').toLowerCase();
 
-    if (!decodedPath.startsWith(musicDir)) {
-      log.error('[API] Invalid file path:', decodedPath);
+    log.info('[API] Stream path check - musicDir: ' + musicDir + ', normalized: ' + normalizedMusicDir);
+    log.info('[API] Stream path check - decodedPath startsWith check: ' + normalizedDecodedPath.startsWith(normalizedMusicDir));
+
+    if (!normalizedDecodedPath.startsWith(normalizedMusicDir)) {
+      log.error('[API] Invalid file path: ' + decodedPath + ' (musicDir: ' + musicDir + ')');
       res.status(403).send('Access denied');
       return;
     }
@@ -347,9 +395,12 @@ app.get('/api/music/lrc', async (req, res) => {
 
     // 安全检查：确保路径在允许的目录内
     const musicDir = getMusicDir();
+    // 统一使用正斜杠进行比较（处理Windows路径分隔符差异）
+    const normalizedMusicDir = musicDir.replace(/\\/g, '/');
+    const normalizedDecodedPath = decodedPath.replace(/\\/g, '/');
 
-    if (!decodedPath.startsWith(musicDir)) {
-      log.error('[API] Invalid file path:', decodedPath);
+    if (!normalizedDecodedPath.toLowerCase().startsWith(normalizedMusicDir.toLowerCase())) {
+      log.error('[API] Invalid file path: ' + decodedPath + ' (musicDir: ' + musicDir + ')');
       res.status(403).send('Access denied');
       return;
     }
@@ -371,30 +422,133 @@ app.get('/api/music/lrc', async (req, res) => {
   }
 });
 
-// 本地音乐搜索
-app.get('/api/music/local', async (req, res) => {
-  const { keyword, limit = '999999' } = req.query;
+// 获取专辑封面
+app.get('/api/music/cover', async (req, res) => {
+  const { path: filePath } = req.query;
+
+  if (!filePath || typeof filePath !== 'string') {
+    res.status(400).send('Missing file path');
+    return;
+  }
 
   try {
-    // 允许空关键词（返回所有音乐或前 N 首）
-    const searchKeyword = keyword && typeof keyword === 'string' ? keyword : '';
-    const results = await localMusicService.searchMusic(
-      searchKeyword,
-      parseInt(limit.toString()) || 999999
-    );
+    // 解码文件路径
+    const decodedPath = decodeURIComponent(filePath);
+
+    // 安全检查：确保路径在允许的目录内
+    const musicDir = getMusicDir();
+    // 统一使用正斜杠进行比较（处理Windows路径分隔符差异）
+    const normalizedMusicDir = musicDir.replace(/\\/g, '/');
+    const normalizedDecodedPath = decodedPath.replace(/\\/g, '/');
+
+    if (!normalizedDecodedPath.toLowerCase().startsWith(normalizedMusicDir.toLowerCase())) {
+      log.error('[API] Invalid file path for cover: ' + decodedPath + ' (musicDir: ' + musicDir + ')');
+      res.status(403).send('Access denied');
+      return;
+    }
+
+    // 检查文件是否存在
+    if (!fs.existsSync(decodedPath)) {
+      log.error('[API] Music file not found for cover:', decodedPath);
+      res.status(404).send('File not found');
+      return;
+    }
+
+    // 导入 music-metadata
+    const { parseFile } = await import('music-metadata');
+
+    // 提取元数据和封面
+    const metadata = await parseFile(decodedPath);
+
+    if (metadata.common?.picture && metadata.common.picture.length > 0) {
+      // 获取第一张封面
+      const picture = metadata.common.picture[0];
+
+      // 设置正确的 Content-Type
+      const mimeType = picture.format || 'image/jpeg';
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 缓存一天
+
+      // 发送图片数据
+      res.send(picture.data);
+    } else {
+      // 没有封面，返回默认图片
+      log.debug('[API] No cover found for:', decodedPath);
+      res.status(404).send('Cover not found');
+    }
+  } catch (error) {
+    log.error('[API] Error extracting cover:', error);
+    res.status(500).send('Internal server error');
+  }
+});
+
+// 本地音乐搜索（从数据库）
+app.get('/api/music/local', async (req, res) => {
+  const { keyword, limit = '100', offset = '0', includeCoverData = 'false' } = req.query;
+
+  try {
+    const supabase = supabaseService['supabase'];
+    const searchKeyword = keyword && typeof keyword === 'string' ? keyword.trim() : '';
+    const limitNum = Math.min(parseInt(limit.toString()) || 100, 5000); // 最大限制 5000
+    const offsetNum = parseInt(offset.toString()) || 0;
+    const includeCoverDataBool = includeCoverData === 'true';
+
+    // 选择字段：默认不包含封面数据以提升性能
+    const selectFields = 'id, file_path, title, artist, album, duration, has_cover' +
+      (includeCoverDataBool ? ', cover_data, cover_mime_type' : '');
+
+    let query = supabase
+      .from('music_tracks')
+      .select(selectFields);
+
+    // 搜索逻辑
+    if (searchKeyword) {
+      query = query.or(`title.ilike.%${searchKeyword}%,artist.ilike.%${searchKeyword}%,album.ilike.%${searchKeyword}%`);
+    }
+
+    // 排序
+    query = query.order('title', { ascending: true });
+
+    // 分页（使用 range）
+    query = query.range(offsetNum, offsetNum + limitNum - 1);
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // 转换为前端格式
+    const results = (data || []).map((track: any) => {
+      const encodedPath = encodeURIComponent(track.file_path);
+      let coverUrl = 'https://picsum.photos/64/64';
+
+      // 优先使用数据库中存储的 Base64 封面（仅当包含封面数据时）
+      if (includeCoverDataBool && track.has_cover && track.cover_data && track.cover_mime_type) {
+        coverUrl = `data:${track.cover_mime_type};base64,${track.cover_data}`;
+      }
+
+      return {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration * 1000, // 转换为毫秒
+        url: `/api/music/stream?path=${encodedPath}`,
+        cover: coverUrl,
+      };
+    });
 
     // 优化日志输出，只在搜索时有关键词时才详细打印
     if (searchKeyword) {
       log.info(`[API] 🔍 搜索音乐: "${searchKeyword}" - 找到 ${results.length} 首歌曲`);
     } else {
-      // 空关键词只在第一次或音乐列表变化时打印（用静默标志控制）
       if (!musicListLogged) {
         log.info(`[API] 📚 加载音乐库: ${results.length} 首歌曲`);
         musicListLogged = true;
       }
     }
 
-    // 确保返回数组
     res.json(Array.isArray(results) ? results : []);
   } catch (error) {
     log.error('[API] ❌ 音乐搜索错误:', error);
@@ -421,15 +575,54 @@ app.get('/api/music/health', (req, res) => {
   }
 });
 
-// 获取所有音乐（按 A-Z 排序）
+// 获取所有音乐（从数据库，按指定字段排序）
 app.get('/api/music/all', async (req, res) => {
-  const { limit = '999999', sortBy = 'title' } = req.query;
+  const { limit = '1000', sortBy = 'title', includeCoverData = 'false' } = req.query;
 
   try {
-    const results = await localMusicService.getAllMusicSorted(
-      parseInt(limit.toString()) || 999999,
-      sortBy as 'title' | 'artist' | 'album'
-    );
+    const supabase = supabaseService['supabase'];
+    const limitNum = Math.min(parseInt(limit.toString()) || 1000, 5000); // 最大限制 5000
+    const sortColumn = ['title', 'artist', 'album'].includes(sortBy as string)
+      ? (sortBy as string)
+      : 'title';
+    const includeCoverDataBool = includeCoverData === 'true';
+
+    // 选择字段：默认不包含封面数据以提升性能
+    const selectFields = 'id, file_path, title, artist, album, duration, has_cover' +
+      (includeCoverDataBool ? ', cover_data, cover_mime_type' : '');
+
+    let query = supabase
+      .from('music_tracks')
+      .select(selectFields)
+      .order(sortColumn, { ascending: true })
+      .limit(limitNum);
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // 转换为前端格式
+    const results = (data || []).map((track: any) => {
+      const encodedPath = encodeURIComponent(track.file_path);
+      let coverUrl = 'https://picsum.photos/64/64';
+
+      // 优先使用数据库中存储的 Base64 封面（仅当包含封面数据时）
+      if (includeCoverDataBool && track.has_cover && track.cover_data && track.cover_mime_type) {
+        coverUrl = `data:${track.cover_mime_type};base64,${track.cover_data}`;
+      }
+
+      return {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration * 1000, // 转换为毫秒
+        url: `/api/music/stream?path=${encodedPath}`,
+        cover: coverUrl,
+      };
+    });
 
     log.info(`[API] 📚 获取所有音乐: ${results.length} 首歌曲 (排序: ${sortBy})`);
     res.json(Array.isArray(results) ? results : []);
@@ -439,26 +632,66 @@ app.get('/api/music/all', async (req, res) => {
   }
 });
 
-// 刷新音乐缓存
+// 刷新音乐库（同步到数据库）
 app.post('/api/music/refresh', async (req, res) => {
   try {
-    log.info('[API] 🔄 刷新音乐缓存...');
-    localMusicService.refreshCache();
+    log.info('[API] 🔄 同步音乐库到数据库...');
 
-    // 重新扫描并获取最新的音乐列表
-    const allMusic = await localMusicService.getAllMusicSorted(999999, 'title');
+    // 执行同步
+    const syncResult = await musicSyncService.syncMusicLibrary();
 
-    log.info(`[API] ✅ 音乐库已刷新: ${allMusic.length} 首歌曲`);
+    if (syncResult.errors.length > 0) {
+      log.error(`[API] ❌ 同步完成但有 ${syncResult.errors.length} 个错误`);
+      res.status(500).json({
+        success: false,
+        error: '同步完成但有错误',
+        errors: syncResult.errors,
+        result: syncResult,
+      });
+      return;
+    }
 
-    // 重置日志标志，允许下次加载时打印
+    log.info(
+      `[API] ✅ 音乐库同步完成: +${syncResult.added} ~${syncResult.updated} -${syncResult.deleted} (耗时 ${syncResult.duration}ms)`
+    );
+
+    // 获取同步后的音乐列表
+    const supabase = supabaseService['supabase'];
+    const { data } = await supabase
+      .from('music_tracks')
+      .select('id, file_path, title, artist, album, duration, has_cover, cover_data, cover_mime_type')
+      .order('title', { ascending: true })
+      .limit(999999);
+
+    const allMusic = (data || []).map((track: any) => {
+      const encodedPath = encodeURIComponent(track.file_path);
+      let coverUrl = 'https://picsum.photos/64/64';
+
+      // 优先使用数据库中存储的 Base64 封面
+      if (track.has_cover && track.cover_data && track.cover_mime_type) {
+        coverUrl = `data:${track.cover_mime_type};base64,${track.cover_data}`;
+      }
+
+      return {
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration * 1000,
+        url: `/api/music/stream?path=${encodedPath}`,
+        cover: coverUrl,
+      };
+    });
+
+    // 重置日志标志
     musicListLogged = false;
 
-    // 返回刷新后的音乐列表，前端可以直接使用
     res.json({
       success: true,
       count: allMusic.length,
-      message: `已刷新音乐库，共 ${allMusic.length} 首歌曲`,
+      message: `已同步音乐库，共 ${allMusic.length} 首歌曲 (新增 ${syncResult.added}，更新 ${syncResult.updated}，删除 ${syncResult.deleted})`,
       data: allMusic,
+      syncResult,
     });
   } catch (error) {
     log.error('[API] ❌ 刷新音乐库失败:', error);
@@ -469,16 +702,195 @@ app.post('/api/music/refresh', async (req, res) => {
   }
 });
 
-// 获取音乐库状态
-app.get('/api/music/status', (req, res) => {
+// 获取音乐库状态（数据库状态）
+app.get('/api/music/status', async (req, res) => {
   try {
-    const status = localMusicService.getStatus();
-    res.json(status);
+    const dbStatus = await musicSyncService.getSyncStatus();
+    const localStatus = localMusicService.getStatus();
+
+    res.json({
+      database: {
+        totalTracks: dbStatus.totalTracks,
+        lastSyncTime: dbStatus.lastSyncTime,
+      },
+      local: {
+        musicDir: localStatus.musicDir,
+        cacheSize: localStatus.cacheSize,
+        lastCacheTime: localStatus.lastCacheTime,
+        cacheExpired: localStatus.cacheExpired,
+      },
+    });
   } catch (error) {
     log.error('[API] Get music status error:', error);
     res.status(500).json({
       success: false,
       error: '获取音乐库状态失败',
+    });
+  }
+});
+
+// 测试元数据提取 - 查看具体文件的标签信息
+app.get('/api/music/test-metadata', async (req, res) => {
+  try {
+    const { path: filePath } = req.query;
+    
+    if (!filePath || typeof filePath !== 'string') {
+      res.status(400).json({ error: '请提供文件路径参数 path' });
+      return;
+    }
+    
+    const { parseFile } = await import('music-metadata');
+    const metadata = await parseFile(filePath);
+    
+    res.json({
+      success: true,
+      filePath,
+      metadata: {
+        title: metadata.common?.title || null,
+        artist: metadata.common?.artist || null,
+        album: metadata.common?.album || null,
+        albumArtist: metadata.common?.albumartist || null,
+        artists: metadata.common?.artists || null,
+        year: metadata.common?.year || null,
+        genre: metadata.common?.genre || null,
+        track: metadata.common?.track || null,
+        disk: metadata.common?.disk || null,
+        duration: metadata.format?.duration || null,
+        bitrate: metadata.format?.bitrate || null,
+        sampleRate: metadata.format?.sampleRate || null,
+        hasPicture: (metadata.common?.picture?.length || 0) > 0,
+        pictureCount: metadata.common?.picture?.length || 0,
+      },
+      raw: {
+        common: metadata.common,
+        format: metadata.format
+      }
+    });
+  } catch (error) {
+    log.error('[Test] 元数据提取错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    });
+  }
+});
+
+// 清空数据库并重新同步音乐库
+// 测试扫描功能
+app.get('/api/music/test-scan', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const getMusicDir = () => 'F:\\Music';
+    
+    const SUPPORTED_FORMATS = ['.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg'];
+    
+    const scanResults: any[] = [];
+    let totalFiles = 0;
+    let matchedFiles = 0;
+    
+    const scan = (dir: string, level = 0) => {
+      try {
+        const files = fs.readdirSync(dir);
+        
+        for (const file of files) {
+          const filePath = path.join(dir, file);
+          const stats = fs.statSync(filePath);
+          
+          if (stats.isDirectory()) {
+            scan(filePath, level + 1);
+            continue;
+          }
+          
+          totalFiles++;
+          const ext = path.extname(file).toLowerCase();
+          if (SUPPORTED_FORMATS.includes(ext)) {
+            matchedFiles++;
+            scanResults.push({
+              file: file,
+              path: filePath,
+              size: stats.size,
+              ext: ext
+            });
+          }
+        }
+      } catch (error) {
+        log.error(`扫描失败: ${dir}`, error);
+      }
+    };
+    
+    const musicDir = getMusicDir();
+    log.info(`[Test] 开始扫描: ${musicDir}`);
+    scan(musicDir);
+    log.info(`[Test] 扫描完成: 总计 ${totalFiles} 文件, 匹配 ${matchedFiles} 文件`);
+    
+    res.json({
+      success: true,
+      musicDir,
+      totalFiles,
+      matchedFiles,
+      files: scanResults.slice(0, 20) // 只返回前20个
+    });
+  } catch (error) {
+    log.error('[Test] 扫描错误:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    });
+  }
+});
+
+app.post('/api/music/reset', async (req, res) => {
+  try {
+    log.info('[API] 🔄 开始清空并重新同步音乐库...');
+
+    // 清空数据库
+    const clearResult = await musicSyncService.clearDatabase();
+
+    if (!clearResult.success) {
+      log.error(`[API] ❌ 清空数据库失败: ${clearResult.error}`);
+      res.status(500).json({
+        success: false,
+        error: clearResult.error || '清空数据库失败',
+      });
+      return;
+    }
+
+    log.info(`[API] ✓ 已清空 ${clearResult.deleted} 条记录`);
+
+    // 重新同步
+    const syncResult = await musicSyncService.syncMusicLibrary();
+
+    if (syncResult.errors.length > 0) {
+      log.error(`[API] ❌ 同步完成但有 ${syncResult.errors.length} 个错误`);
+      res.status(500).json({
+        success: false,
+        error: '同步完成但有错误',
+        errors: syncResult.errors,
+        clearResult,
+        syncResult,
+      });
+      return;
+    }
+
+    log.info(
+      `[API] ✅ 重新同步完成: +${syncResult.added} ~${syncResult.updated} -${syncResult.deleted} (耗时 ${syncResult.duration}ms)`
+    );
+
+    // 重置日志标志
+    musicListLogged = false;
+
+    res.json({
+      success: true,
+      message: `已清空并重新同步音乐库，共 ${syncResult.added} 首歌曲`,
+      clearResult,
+      syncResult,
+    });
+  } catch (error) {
+    log.error('[API] ❌ 重置音乐库失败:', error);
+    res.status(500).json({
+      success: false,
+      error: '重置音乐库失败',
     });
   }
 });
@@ -510,6 +922,15 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     const { roomId } = roomManager.createRoom('默认五子棋房间');
     log.info(`[Server] 创建默认房间: ${roomId} (默认五子棋房间)`);
   }
+
+// 启动文件监听器（可选） - 暂时禁用以避免statement timeout
+log.info(`[Server] 环境变量 ENABLE_FILE_WATCHER=${process.env.ENABLE_FILE_WATCHER || '未设置'}`);
+if (process.env.ENABLE_FILE_WATCHER === 'true') {
+  fileWatcherService.start();
+  log.info('[Server] ✅ 文件监听器已启动');
+} else {
+  log.info('[Server] ⏸️  文件监听器已禁用 (设置 ENABLE_FILE_WATCHER=true 启用)');
+}
 });
 
 export { app, io, roomManager, historyManager, playerManager };

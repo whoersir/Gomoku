@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { MusicTrack } from '../../types/musicTypes';
 import { useMusicPlayer } from '../../hooks/useMusicPlayer';
 import { useFavorites } from '../../hooks/useFavorites';
 import { groupTracksByArtist, getArtistColor } from '../../utils/musicUtils';
+import { pinyin } from 'pinyin-pro';
 
 interface ArtistViewProps {
   tracks: MusicTrack[];
@@ -19,17 +20,83 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [expandedArtist, setExpandedArtist] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 获取歌手的首字母（支持中文转拼音）
+  const getArtistFirstLetter = useMemo(() => {
+    return (artistName: string): string => {
+      if (!artistName) return '#';
+
+      const firstChar = artistName.charAt(0);
+
+      // 英文字母
+      if (/[a-zA-Z]/.test(firstChar)) {
+        return firstChar.toUpperCase();
+      }
+
+      // 数字
+      if (/[0-9]/.test(firstChar)) {
+        return '#';
+      }
+
+      // 中文转拼音首字母
+      try {
+        // 转换单个字符的拼音
+        const pinyinResult = pinyin(firstChar);
+        console.log(`[拼音调试] 艺术家: ${artistName}, 字符: ${firstChar}, 拼音结果: "${pinyinResult}", 类型: ${typeof pinyinResult}`);
+        if (pinyinResult && typeof pinyinResult === 'string' && pinyinResult.length > 0) {
+          const letter = pinyinResult.charAt(0).toUpperCase();
+          console.log(`[拼音调试] 提取的首字母: ${letter}`);
+          if (/[A-Z]/.test(letter)) {
+            return letter;
+          }
+        }
+      } catch (error) {
+        console.warn('拼音转换失败:', firstChar, error);
+      }
+
+      // 其他字符
+      return '#';
+    };
+  }, []);
+
+  // 计算所有存在的字母
+  const availableLetters = useMemo(() => {
+    const letters = new Set<string>();
+    const allGroups = groupTracksByArtist(tracks);
+    allGroups.forEach((group) => {
+      const letter = getArtistFirstLetter(group.artist);
+      letters.add(letter);
+    });
+    // 排序：A-Z 在前，# 在最后
+    const sortedLetters = Array.from(letters).sort((a, b) => {
+      if (a === '#') return 1;
+      if (b === '#') return -1;
+      return a.localeCompare(b);
+    });
+    return sortedLetters;
+  }, [tracks, getArtistFirstLetter]);
 
   const artistGroups = useMemo(() => {
     let result = groupTracksByArtist(tracks);
 
+    // 先按搜索框过滤
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter((group) => group.artist.toLowerCase().includes(query));
     }
 
+    // 再按字母过滤
+    if (selectedLetter) {
+      result = result.filter((group) => {
+        const letter = getArtistFirstLetter(group.artist);
+        return letter === selectedLetter;
+      });
+    }
+
     return result;
-  }, [tracks, searchQuery]);
+  }, [tracks, searchQuery, selectedLetter]);
 
   const handlePlayTrack = (track: MusicTrack) => {
     const index = musicList.findIndex((t) => t.id === track.id);
@@ -44,6 +111,23 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
     }
   };
 
+  // 处理字母筛选
+  const handleLetterSelect = (letter: string | null) => {
+    setSelectedLetter(letter);
+    // 如果是点击"全部"，滚动到顶部
+    if (letter === null && containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // 搜索时清除字母筛选
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      setSelectedLetter(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* 搜索栏 */}
@@ -52,12 +136,15 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
           type="text"
           placeholder="搜索艺术家..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-400"
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedLetter(null);
+            }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
           >
             ✕
@@ -68,6 +155,33 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
       {/* 结果计数 */}
       <div className="text-sm text-gray-400 mb-3">
         共 <span className="text-white font-semibold">{artistGroups.length}</span> 位艺术家
+      </div>
+
+      {/* 横向导航栏 */}
+      <div className="flex flex-wrap gap-1 py-2 px-1 mb-3">
+        <button
+          onClick={() => handleLetterSelect(null)}
+          className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
+            selectedLetter === null
+              ? 'bg-blue-500 text-white'
+              : 'bg-white/10 text-gray-300 hover:bg-white/20'
+          }`}
+        >
+          全部
+        </button>
+        {availableLetters.map((letter) => (
+          <button
+            key={letter}
+            onClick={() => handleLetterSelect(letter)}
+            className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
+              selectedLetter === letter
+                ? 'bg-blue-500 text-white'
+                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+            }`}
+          >
+            {letter}
+          </button>
+        ))}
       </div>
 
       {/* 艺术家列表 */}
@@ -91,7 +205,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div ref={containerRef} className="flex-1 overflow-y-auto space-y-2">
           {artistGroups.map((group) => {
             const isExpanded = expandedArtist === group.artist;
             const artistColor = getArtistColor(group.artist);

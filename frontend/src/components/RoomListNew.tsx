@@ -156,10 +156,10 @@ export const RoomListNew: React.FC<RoomListProps> = ({
     const loadFavoriteMusic = async () => {
       try {
         // 获取后端URL
-        const backendUrl = getBackendUrl();
+        const backendUrl = getBackendUrl().replace(/\/$/, '');
 
-        // 从后端获取音乐列表
-        const response = await fetch(`${backendUrl}/api/music/local?keyword=&limit=999`);
+        // 从后端获取音乐列表（限制100首以避免超时）
+        const response = await fetch(`${backendUrl}/api/music/local?keyword=&limit=100`);
         const playlist = await response.json();
 
         if (Array.isArray(playlist)) {

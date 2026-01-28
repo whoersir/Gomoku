@@ -22,5 +22,10 @@ export const getBackendUrl = (): string => {
   // 如果不是 5173 端口，则使用默认端口 3000
   const url = new URL(currentUrl);
   url.port = '3000';
-  return url.toString();
+  let backendUrl = url.toString();
+
+  // 确保URL末尾不带斜杠
+  backendUrl = backendUrl.replace(/\/$/, '');
+
+  return backendUrl;
 };
