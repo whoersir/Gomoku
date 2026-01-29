@@ -44,6 +44,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [playMode, setPlayMode] = useState<PlayMode>('sequential');
   const previousVolumeRef = useRef(0.8);
+  const nextTrackRef = useRef<() => void>(() => {});
 
   // 初始化音频元素
   useEffect(() => {
@@ -90,7 +91,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     };
   }, []);
 
-  // 单独处理播放结束事件（依赖playMode和nextTrack）
+  // 单独处理播放结束事件（使用ref避免循环依赖）
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -103,7 +104,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
         setIsPlaying(true);
       } else {
         // 自动播放下一首
-        nextTrack();
+        nextTrackRef.current();
       }
     };
 
@@ -111,7 +112,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     return () => {
       audio.removeEventListener('ended', handleEnded);
     };
-  }, [playMode, nextTrack]);
+  }, [playMode]);
 
   // 加载音乐列表
   useEffect(() => {
@@ -272,6 +273,9 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
       playTrack(nextIndex);
     }
   }, [currentTrackIndex, musicList.length, playMode, playTrack]);
+
+  // 更新ref以便在事件处理器中使用
+  nextTrackRef.current = nextTrack;
 
   // 播放上一首
   const previousTrack = useCallback(() => {
