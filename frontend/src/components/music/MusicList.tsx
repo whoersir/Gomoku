@@ -26,7 +26,10 @@ export const MusicList: React.FC = () => {
           return (
             <button
               key={track.id}
-              onClick={() => playTrack(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                playTrack(index);
+              }}
               className={`w-full p-4 flex items-center gap-4 transition-colors ${
                 isCurrentTrack ? 'bg-blue-500/20 hover:bg-blue-500/30' : 'hover:bg-gray-700/50'
               }`}

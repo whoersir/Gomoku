@@ -2,6 +2,23 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MusicTrack } from '../types/musicTypes';
 import { musicService } from '../services/musicService';
 
+// 后端返回的曲目数据接口
+interface BackendTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  url: string;
+  cover?: string;
+}
+
+// 音频错误接口
+interface AudioError extends Error {
+  name: string;
+  message: string;
+}
+
 export type PlayMode = 'sequential' | 'single' | 'random';
 
 export interface UseMusicPlayerReturn {
@@ -45,6 +62,8 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const [playMode, setPlayMode] = useState<PlayMode>('sequential');
   const previousVolumeRef = useRef(0.8);
   const nextTrackRef = useRef<() => void>(() => {});
+  const isTogglePlayPendingRef = useRef(false);
+  const isPlayingTrackRef = useRef<number | null>(null); // 跟踪正在播放的歌曲索引
 
   // 初始化音频元素
   useEffect(() => {
@@ -97,6 +116,8 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     if (!audio) return;
 
     const handleEnded = () => {
+      isPlayingTrackRef.current = null; // 播放结束，清除标记
+
       if (playMode === 'single') {
         // 单曲循环，重新播放当前歌曲
         audio.currentTime = 0;
@@ -162,7 +183,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
           : `${window.location.protocol}//${window.location.hostname}:3000`;
 
         // 直接使用刷新API返回的音乐列表
-        const allMusic = result.data.map((track: any) => ({
+        const allMusic = result.data.map((track: BackendTrack) => ({
           id: track.id,
           title: track.title,
           artist: track.artist,
@@ -193,25 +214,72 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   }, [currentTrack]);
 
   // 播放/暂停切换
-  const togglePlay = useCallback(() => {
-    if (!currentTrack || !audioRef.current) return;
+  const togglePlay = useCallback(async () => {
+    if (!audioRef.current) return;
 
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
+    // 如果正在加载中，不响应播放/暂停操作
+    if (isLoading) {
+      console.log('[useMusicPlayer] Ignoring togglePlay during loading');
+      return;
     }
 
-    setIsPlaying(!isPlaying);
-  }, [currentTrack, isPlaying]);
+    // 防止重复调用（200ms内）
+    if (isTogglePlayPendingRef.current) {
+      console.log('[useMusicPlayer] TogglePlay already in progress, ignoring');
+      return;
+    }
+
+    isTogglePlayPendingRef.current = true;
+
+    // 短暂延迟后重置标记
+    setTimeout(() => {
+      isTogglePlayPendingRef.current = false;
+    }, 200);
+
+    // 直接从audio元素读取播放状态，避免闭包问题
+    const isCurrentlyPlaying = !audioRef.current.paused;
+
+    if (isCurrentlyPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (error: unknown) {
+        // 忽略被中断的错误或没有音频源的错误
+        const audioError = error as AudioError;
+        if (audioError.name === 'AbortError') {
+          console.log('[useMusicPlayer] Play was interrupted (expected during rapid operations)');
+        } else if (audioError.name === 'NotSupportedError') {
+          console.log('[useMusicPlayer] No audio source or invalid source');
+        } else {
+          console.error('[useMusicPlayer] Failed to play:', error);
+        }
+      }
+    }
+  }, [isLoading]);
 
   // 播放指定索引的曲目
   const playTrack = useCallback(
     (index: number) => {
       if (index < 0 || index >= musicList.length || !audioRef.current) return;
 
-      setIsLoading(true);
+      // 防止重复播放同一首歌（500ms内的重复调用）
+      if (isPlayingTrackRef.current === index) {
+        console.log('[useMusicPlayer] Already playing this track, ignoring duplicate call');
+        return;
+      }
+
+      // 清除togglePlay的pending标记，允许新播放操作
+      isTogglePlayPendingRef.current = false;
+
+      // 立即更新状态，确保UI响应
       const track = musicList[index];
+      setCurrentTrack(track);
+      setCurrentTrackIndex(index);
+      setIsLoading(true);
+      isPlayingTrackRef.current = index; // 标记正在播放
 
       console.log('[useMusicPlayer] Playing track:', track);
       console.log('[useMusicPlayer] Track URL:', track.url);
@@ -231,22 +299,33 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
         .then(() => {
           console.log('[useMusicPlayer] Successfully started playing:', track.title);
           setIsPlaying(true);
-          setCurrentTrack(track);
-          setCurrentTrackIndex(index);
           setIsLoading(false);
 
           // 保存当前播放的歌曲ID
           localStorage.setItem('musicPlayer_trackId', track.id);
           localStorage.setItem('musicPlayer_time', '0');
+
+          // 延迟清除标记，允许后续的播放操作（如重新点击同一首歌）
+          setTimeout(() => {
+            isPlayingTrackRef.current = null;
+          }, 500);
         })
-        .catch((error) => {
-          console.error('[useMusicPlayer] Failed to play track:', error);
-          console.error('[useMusicPlayer] Track details:', {
-            title: track.title,
-            url: track.url,
-            exists: !!track.url,
-          });
+        .catch((error: unknown) => {
+          // 忽略被中断的错误（可能是用户快速切换歌曲导致的）
+          const audioError = error as AudioError;
+          if (audioError.name === 'AbortError') {
+            console.log('[useMusicPlayer] Play was interrupted (user may have switched tracks quickly)');
+          } else {
+            console.error('[useMusicPlayer] Failed to play track:', error);
+            console.error('[useMusicPlayer] Track details:', {
+              title: track.title,
+              url: track.url,
+              exists: !!track.url,
+            });
+            setIsPlaying(false);
+          }
           setIsLoading(false);
+          isPlayingTrackRef.current = null; // 播放失败，立即清除标记
         });
     },
     [musicList]
@@ -337,7 +416,17 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     if (isNaN(time) || time < 0) return '0:00';
 
     // 检测是否为毫秒（大于10000认为是毫秒）
-    const timeInSeconds = time > 10000 ? time / 1000 : time;
+    let timeInSeconds: number;
+    if (time > 10000) {
+      // 大于10000认为是毫秒
+      timeInSeconds = time / 1000;
+    } else {
+      // 否则认为是秒
+      timeInSeconds = time;
+    }
+
+    // 确保时间不为负数
+    timeInSeconds = Math.max(0, timeInSeconds);
 
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);

@@ -1,0 +1,203 @@
+// PlayerControls 样式文件
+// 使用 BEM 命名规范
+
+.player-controls {
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+// 进度条区域
+.player-controls__progress-bar {
+  margin-bottom: 1rem;
+  min-height: 6px;
+
+  &-container {
+    height: 6px;
+    background-color: #374151;
+    border-radius: 9999px;
+    cursor: pointer;
+    position: relative;
+
+    &:hover {
+      // 提示用户可以交互
+    }
+  }
+
+  &-fill {
+    height: 100%;
+    background: linear-gradient(to right, #3b82f6, #a855f7);
+    border-radius: 9999px;
+    transition: all 100ms linear;
+    position: relative;
+
+    &__handle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(50%);
+      width: 1rem;
+      height: 1rem;
+      background-color: white;
+      border-radius: 9999px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 1);
+      opacity: 0;
+      transition: opacity 200ms ease-in-out;
+      pointer-events: none;
+    }
+  }
+
+  &-container:hover &-fill__handle {
+    opacity: 1;
+  }
+
+  &-time {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+
+    &__label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+  }
+}
+
+// 音量滑块区域
+.player-controls__volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+
+  &-slider {
+    position: absolute;
+    bottom: 4rem;
+    left: 0;
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    z-index: 30;
+  }
+
+  &-input {
+    width: 8rem;
+    height: 0.5rem;
+    background-color: #374151;
+    border-radius: 0.5rem;
+    appearance: none;
+    cursor: pointer;
+
+    // 移除浏览器默认样式
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 1rem;
+      height: 1rem;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    &::-moz-range-thumb {
+      width: 1rem;
+      height: 1rem;
+      background-color: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    &-percentage {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 0.25rem;
+    }
+  }
+
+  &-button {
+    color: #9ca3af;
+
+    &:hover {
+      color: white;
+    }
+  }
+}
+
+// 控制按钮区域
+.player-controls__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  &--left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &--center {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  &--right {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+// 播放控制按钮
+.player-controls__play-button {
+  width: 4rem;
+  height: 4rem;
+  background-color: white;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f3f4f6;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// 导航按钮
+.player-controls__nav-button {
+  color: #9ca3af;
+  padding: 0.5rem;
+  position: relative;
+  z-index: 20;
+
+  &:hover {
+    color: white;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// 播放模式按钮
+.player-controls__mode-button {
+  color: #9ca3af;
+  padding: 0.5rem;
+  position: relative;
+  z-index: 20;
+
+  &:hover {
+    color: white;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}

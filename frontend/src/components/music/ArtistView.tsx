@@ -98,7 +98,8 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
     return result;
   }, [tracks, searchQuery, selectedLetter]);
 
-  const handlePlayTrack = (track: MusicTrack) => {
+  const handlePlayTrack = (track: MusicTrack, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     const index = musicList.findIndex((t) => t.id === track.id);
     if (index !== -1) {
       playTrack(index);
@@ -260,7 +261,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
                       return (
                         <button
                           key={track.id}
-                          onClick={() => handlePlayTrack(track)}
+                          onClick={(e) => handlePlayTrack(track, e)}
                           className={`w-full p-3 flex items-center gap-3 transition-colors group ${
                             isPlaying ? 'bg-blue-500/20' : 'hover:bg-white/10'
                           }`}

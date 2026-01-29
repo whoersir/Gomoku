@@ -109,7 +109,9 @@ CREATE TRIGGER update_music_tracks_updated_at
 -- 6. 示例查询
 -- ============================================
 -- 获取所有音乐曲目（按标题排序）
--- SELECT * FROM music_tracks ORDER BY title;
+-- SELECT id, file_path, title, artist, album, duration, has_cover, cover_data, cover_mime_type, file_hash, file_size, created_at, updated_at
+-- FROM music_tracks
+-- ORDER BY title;
 
 -- 获取指定用户的播放历史
 -- SELECT h.*, t.title, t.artist, t.album

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useMusicPlayer, PlayMode } from '../../hooks/useMusicPlayer';
+import './PlayerControls.scss';
 
 export const PlayerControls: React.FC = () => {
   const {
@@ -22,7 +23,8 @@ export const PlayerControls: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const volumeSliderRef = useRef<HTMLDivElement>(null);
+  const [isDraggingVolume, setIsDraggingVolume] = useState(false);
+  const volumeContainerRef = useRef<HTMLDivElement>(null);
 
   // 播放模式映射
   const playModeConfig: Record<
@@ -32,19 +34,10 @@ export const PlayerControls: React.FC = () => {
     sequential: {
       icon: (
         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
         </svg>
       ),
       label: '顺序播放',
-      nextMode: 'single',
-    },
-    single: {
-      icon: (
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
-        </svg>
-      ),
-      label: '单曲循环',
       nextMode: 'random',
     },
     random: {
@@ -54,6 +47,15 @@ export const PlayerControls: React.FC = () => {
         </svg>
       ),
       label: '随机播放',
+      nextMode: 'single',
+    },
+    single: {
+      icon: (
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+        </svg>
+      ),
+      label: '单曲循环',
       nextMode: 'sequential',
     },
   };
@@ -76,6 +78,11 @@ export const PlayerControls: React.FC = () => {
     const x = e.clientX - rect.left;
     const progress = Math.max(0, Math.min(1, x / rect.width));
     setDragProgress(progress);
+
+    // 如果正在拖拽，立即跳转（提供更流畅的体验）
+    if (isDragging) {
+      seekTo(progress * duration);
+    }
   };
 
   const handleProgressMouseUp = () => {
@@ -86,9 +93,42 @@ export const PlayerControls: React.FC = () => {
     setIsDragging(false);
   };
 
+  // 全局拖拽处理
+  React.useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !duration) return;
+
+      // 获取进度条元素
+      const progressBar = document.querySelector('[data-progress-bar]');
+      if (progressBar) {
+        const rect = progressBar.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const progress = Math.max(0, Math.min(1, x / rect.width));
+        setDragProgress(progress);
+        seekTo(progress * duration);
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging, duration, dragProgress]);
+
   // 计算显示的进度
-  const displayedProgress = isDragging ? dragProgress : duration > 0 ? currentTime / duration : 0;
-  const displayedTime = isDragging ? dragProgress * duration : currentTime;
+  const displayedProgress = isDragging ? dragProgress : (duration > 0 ? Math.max(0, Math.min(1, currentTime / duration)) : 0);
+  const displayedTime = isDragging ? dragProgress * (duration || 0) : currentTime;
 
   // 音量滑块处理
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +139,7 @@ export const PlayerControls: React.FC = () => {
   // 点击外部关闭音量滑块
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (volumeSliderRef.current && !volumeSliderRef.current.contains(event.target as Node)) {
+      if (volumeContainerRef.current && !volumeContainerRef.current.contains(event.target as Node)) {
         setShowVolumeSlider(false);
       }
     };
@@ -114,40 +154,43 @@ export const PlayerControls: React.FC = () => {
   }, [showVolumeSlider]);
 
   return (
-    <div className="w-full">
+    <div className="player-controls">
       {/* 进度条 */}
-      <div className="mb-4">
+      <div className="player-controls__progress-bar">
         <div
-          className="h-1.5 bg-gray-700 rounded-full cursor-pointer relative group"
+          className="player-controls__progress-bar-container"
           onMouseDown={handleProgressMouseDown}
           onMouseMove={handleProgressSeek}
           onMouseUp={handleProgressMouseUp}
           onMouseLeave={handleProgressMouseUp}
+          data-progress-bar
+          style={{ minHeight: '6px' }}
         >
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-100 ease-linear"
+            className="player-controls__progress-bar-fill"
             style={{ width: `${displayedProgress * 100}%` }}
           >
-            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="player-controls__progress-bar-fill__handle" />
           </div>
         </div>
-        <div className="flex justify-between mt-2">
-          <span className="text-xs text-gray-400">{formatTime(displayedTime)}</span>
-          <span className="text-xs text-gray-400">{formatTime(duration)}</span>
+        <div className="player-controls__progress-bar-time">
+          <span className="player-controls__progress-bar-time__label">{formatTime(displayedTime)}</span>
+          <span className="player-controls__progress-bar-time__label">{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* 控制按钮 */}
-      <div className="flex items-center justify-between">
+      <div className="player-controls__buttons">
         {/* 左侧：音量控制 */}
-        <div className="flex items-center gap-2 relative" ref={volumeSliderRef}>
+        <div
+          ref={volumeContainerRef}
+          className="player-controls__volume player-controls__buttons--left"
+          onMouseEnter={() => setShowVolumeSlider(true)}
+          onMouseLeave={() => !isDraggingVolume && setShowVolumeSlider(false)}
+        >
           <button
-            onClick={() => {
-              toggleMute();
-              setShowVolumeSlider(false);
-            }}
-            onDoubleClick={() => setShowVolumeSlider(!showVolumeSlider)}
-            className="text-gray-400 hover:text-white transition-colors"
+            onClick={toggleMute}
+            className="player-controls__volume-button p-2 relative z-20 focus:outline-none"
             title="音量"
           >
             {isMuted || volume === 0 ? (
@@ -166,7 +209,7 @@ export const PlayerControls: React.FC = () => {
           </button>
 
           {showVolumeSlider && (
-            <div className="absolute bottom-16 left-0 bg-gray-800 rounded-lg p-3 shadow-xl">
+            <div className="player-controls__volume-slider">
               <input
                 type="range"
                 min="0"
@@ -174,13 +217,17 @@ export const PlayerControls: React.FC = () => {
                 step="0.01"
                 value={volume}
                 onChange={handleVolumeChange}
-                className="w-32 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                onMouseDown={() => setIsDraggingVolume(true)}
+                onMouseUp={() => setIsDraggingVolume(false)}
+                onMouseEnter={() => setIsDraggingVolume(true)}
+                onMouseLeave={() => setIsDraggingVolume(false)}
+                className="player-controls__volume-input"
                 style={{
                   WebkitAppearance: 'none',
                   background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #374151 ${volume * 100}%, #374151 100%)`,
                 }}
               />
-              <div className="text-center text-xs text-gray-400 mt-1">
+              <div className="player-controls__volume-input-percentage">
                 {Math.round(volume * 100)}%
               </div>
             </div>
@@ -188,10 +235,10 @@ export const PlayerControls: React.FC = () => {
         </div>
 
         {/* 中间：播放控制 */}
-        <div className="flex items-center gap-6">
+        <div className="player-controls__buttons--center">
           <button
             onClick={previousTrack}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="player-controls__nav-button"
             title="上一首"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
@@ -200,8 +247,11 @@ export const PlayerControls: React.FC = () => {
           </button>
 
           <button
-            onClick={togglePlay}
-            className="w-16 h-16 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors shadow-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            className="player-controls__play-button"
             title={isPlaying ? '暂停' : '播放'}
           >
             {isPlaying ? (
@@ -217,7 +267,7 @@ export const PlayerControls: React.FC = () => {
 
           <button
             onClick={nextTrack}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="player-controls__nav-button"
             title="下一首"
           >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
@@ -227,20 +277,13 @@ export const PlayerControls: React.FC = () => {
         </div>
 
         {/* 右侧：播放模式 */}
-        <div className="w-16 flex justify-end">
+        <div className="player-controls__buttons--right">
           <button
             onClick={togglePlayMode}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="player-controls__mode-button"
             title={playModeConfig[playMode].label}
           >
-            {playMode === 'single' ? (
-              // 单曲循环模式显示重复图标
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
-              </svg>
-            ) : (
-              playModeConfig[playMode].icon
-            )}
+            {playModeConfig[playMode].icon}
           </button>
         </div>
       </div>
