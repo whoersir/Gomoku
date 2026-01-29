@@ -78,7 +78,8 @@
     border-radius: 0.5rem;
     padding: 0.75rem;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-    z-index: 30;
+    z-index: 100;
+    pointer-events: auto;
   }
 
   &-input {
@@ -88,6 +89,8 @@
     border-radius: 0.5rem;
     appearance: none;
     cursor: pointer;
+    display: block;
+    pointer-events: auto;
 
     // 移除浏览器默认样式
     &::-webkit-slider-thumb {
@@ -97,6 +100,7 @@
       background-color: #3b82f6;
       border-radius: 50%;
       cursor: pointer;
+      pointer-events: auto;
     }
 
     &::-moz-range-thumb {
@@ -106,6 +110,7 @@
       border-radius: 50%;
       cursor: pointer;
       border: none;
+      pointer-events: auto;
     }
 
     &-percentage {
@@ -113,11 +118,13 @@
       font-size: 0.75rem;
       color: #9ca3af;
       margin-top: 0.25rem;
+      pointer-events: auto;
     }
   }
 
   &-button {
     color: #9ca3af;
+    pointer-events: auto;
 
     &:hover {
       color: white;
@@ -199,5 +206,10 @@
 
   &:focus {
     outline: none;
+  }
+
+  img {
+    // 将PNG图标颜色调整为白色
+    filter: brightness(0) invert(1);
   }
 }

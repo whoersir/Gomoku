@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { MusicTrack } from '../../types/musicTypes';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 import { useFavorites } from '../../hooks/useFavorites';
 import { searchTracks } from '../../utils/musicUtils';
 import { pinyin } from 'pinyin-pro';
@@ -88,9 +88,27 @@ export const AllSongsView: React.FC<AllSongsViewProps> = ({ tracks }) => {
 
   const handlePlayTrack = (track: MusicTrack, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const index = musicList.findIndex((t) => t.id === track.id);
-    if (index !== -1) {
-      playTrack(index);
+    console.log('[AllSongsView] 点击歌曲:', track.title);
+    console.log('[AllSongsView] tracks prop 长度:', tracks.length);
+    console.log('[AllSongsView] musicList 长度:', musicList.length);
+
+    // 使用传入的 tracks prop 来查找索引，而不是 musicList
+    // 因为 tracks 可能经过搜索/筛选，与 musicList 不一致
+    const index = tracks.findIndex((t) => t.id === track.id);
+    console.log('[AllSongsView] 在 tracks 中查找到的索引:', index);
+
+    // 如果在 tracks 中找不到，尝试在 musicList 中查找
+    let musicListIndex = index;
+    if (index === -1) {
+      musicListIndex = musicList.findIndex((t) => t.id === track.id);
+      console.log('[AllSongsView] 在 musicList 中查找到的索引:', musicListIndex);
+    }
+
+    if (musicListIndex !== -1) {
+      console.log('[AllSongsView] 调用 playTrack，索引:', musicListIndex);
+      playTrack(musicListIndex);
+    } else {
+      console.error('[AllSongsView] 未找到歌曲索引, track.id:', track.id);
     }
   };
 

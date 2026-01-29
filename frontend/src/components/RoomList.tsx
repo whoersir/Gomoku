@@ -123,7 +123,7 @@ export const RoomList: React.FC<RoomListProps> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mb-4"></div>
-              <div className="text-dark-text-tertiary">正在加载房间列表...</div>
+              <div className="text-dark-text-tertiary">正在加载主页...</div>
             </div>
           ) : rooms.length === 0 ? (
             <div className="text-center py-16">

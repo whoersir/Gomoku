@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 import { PlayerControls } from './PlayerControls';
 import { MusicList } from './MusicList';
 import { AllSongsView } from './AllSongsView';
 import { ArtistView } from './ArtistView';
 import { FavoriteView } from './FavoriteView';
+import { LyricsView } from './LyricsView';
 import { useFavorites } from '../../hooks/useFavorites';
 
 type LibraryViewMode = 'all' | 'artist' | 'favorite';
@@ -168,16 +169,15 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({ onClose }) => {
                   ) : (
                     <>
                       {/* 歌词视图 */}
-                      <div className="text-center px-4">
+                      <div className="text-center px-4 h-full flex flex-col">
                         <h2 className="text-2xl font-bold text-white mb-4 truncate px-2">
                           {currentTrack.title}
                         </h2>
-                        <p className="text-gray-400 text-base mb-8 truncate px-2">
+                        <p className="text-gray-400 text-base mb-4 truncate px-2">
                           {currentTrack.artist}
                         </p>
-                        <div className="text-white/70 text-sm leading-loose max-h-64 overflow-y-auto">
-                          <p className="mb-4">歌词功能开发中...</p>
-                          <p className="text-white/50">敬请期待</p>
+                        <div className="flex-1 overflow-hidden">
+                          <LyricsView />
                         </div>
                       </div>
                     </>
@@ -223,7 +223,7 @@ export const FullPlayer: React.FC<FullPlayerProps> = ({ onClose }) => {
 
               {/* 播放列表 */}
               {showPlaylist && currentTrack && (
-                <div className="max-h-40 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto">
                   <MusicList />
                 </div>
               )}

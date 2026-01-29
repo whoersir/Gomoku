@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 
 interface LyricLine {
   time: number;
@@ -13,6 +13,8 @@ export const LyricsView: React.FC = () => {
 
   useEffect(() => {
     console.log('[LyricsView] COMPONENT MOUNTED');
+    console.log('[LyricsView] currentTrack:', currentTrack);
+    console.log('[LyricsView] currentTrack.lyrics:', currentTrack?.lyrics);
   }, []);
 
   // 加载并解析LRC歌词

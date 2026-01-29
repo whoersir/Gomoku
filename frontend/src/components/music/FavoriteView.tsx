@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MusicTrack } from '../../types/musicTypes';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 import { useFavorites } from '../../hooks/useFavorites';
 
 interface FavoriteViewProps {
@@ -17,9 +17,18 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
 
   const handlePlayTrack = (track: MusicTrack, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const index = musicList.findIndex((t) => t.id === track.id);
-    if (index !== -1) {
-      playTrack(index);
+
+    // 使用传入的 tracks prop 来查找索引
+    const index = tracks.findIndex((t) => t.id === track.id);
+
+    // 如果在 tracks 中找不到，尝试在 musicList 中查找
+    let musicListIndex = index;
+    if (index === -1) {
+      musicListIndex = musicList.findIndex((t) => t.id === track.id);
+    }
+
+    if (musicListIndex !== -1) {
+      playTrack(musicListIndex);
     }
   };
 
@@ -75,7 +84,7 @@ export const FavoriteView: React.FC<FavoriteViewProps> = ({ tracks }) => {
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   ) : (
-                    <span>♥</span>
+                    <span className="text-red-500">♥</span>
                   )}
                 </div>
 

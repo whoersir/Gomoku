@@ -15,6 +15,7 @@ import { useGameState } from './hooks/useGameState';
 import { RoomListNew } from './components/RoomListNew';
 import { getBackendUrl } from './services/apiConfig';
 import { logger } from './utils/console';
+import { MusicProvider } from './contexts/MusicProvider';
 // import { on, off } from './services/socketService';
 
 type PageState = 'connect' | 'roomList' | 'game';
@@ -36,7 +37,7 @@ function App() {
     const url = new URL(window.location.href);
     const pageParam = url.searchParams.get('page');
 
-    if (pageParam === 'rooms') return 'roomList';
+    if (pageParam === 'home') return 'roomList';
     if (pageParam === 'game') return 'game';
     if (pageParam === 'connect') return 'connect';
 
@@ -77,7 +78,7 @@ function App() {
         url.searchParams.delete('room');
         break;
       case 'roomList':
-        url.searchParams.set('page', 'rooms');
+        url.searchParams.set('page', 'home');
         url.searchParams.delete('room');
         break;
       case 'game':
@@ -426,8 +427,9 @@ function App() {
   );
 
   return (
-    <div className={`w-full min-h-screen bg-dark-bg flex`}>
-      <div className={`${page === 'connect' ? 'w-full' : 'flex-1'}`}>
+    <MusicProvider>
+      <div className={`w-full min-h-screen bg-dark-bg flex`}>
+        <div className={`${page === 'connect' ? 'w-full' : 'flex-1'}`}>
         {page === 'connect' && (
           <ConnectDialog onConnect={handleConnect} loading={loading} error={socket.error} />
         )}
@@ -690,28 +692,31 @@ function App() {
           />
         )}
 
-        {/* Music Player Components - Show on all pages */}
-        <>
-          {/* Mini Player - Fixed at bottom right */}
-          <MiniPlayer
-            onOpenFullPlayer={() => {
-              console.log('[App] Opening full player, current showFullPlayer:', showFullPlayer);
-              setShowFullPlayer(true);
-            }}
-          />
-
-          {/* Full Player - Modal */}
-          {showFullPlayer && (
-            <FullPlayer
-              onClose={() => {
-                console.log('[App] Closing full player');
-                setShowFullPlayer(false);
+        {/* Music Player Components - Show on all pages except login */}
+        {page !== 'connect' && (
+          <>
+            {/* Mini Player - Fixed at bottom right */}
+            <MiniPlayer
+              onOpenFullPlayer={() => {
+                console.log('[App] Opening full player, current showFullPlayer:', showFullPlayer);
+                setShowFullPlayer(true);
               }}
             />
-          )}
-        </>
+
+            {/* Full Player - Modal */}
+            {showFullPlayer && (
+              <FullPlayer
+                onClose={() => {
+                  console.log('[App] Closing full player');
+                  setShowFullPlayer(false);
+                }}
+              />
+            )}
+          </>
+        )}
       </div>
     </div>
+    </MusicProvider>
   );
 }
 

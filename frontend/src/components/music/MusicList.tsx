@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 
 export const MusicList: React.FC = () => {
   const { musicList, currentTrack, playTrack, formatTime } = useMusicPlayer();

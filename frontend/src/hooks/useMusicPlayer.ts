@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { MusicTrack } from '../types/musicTypes';
 import { musicService } from '../services/musicService';
+import { getBackendUrl } from '../utils/apiConfig';
 
 // 后端返回的曲目数据接口
 interface BackendTrack {
@@ -64,6 +65,7 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const nextTrackRef = useRef<() => void>(() => {});
   const isTogglePlayPendingRef = useRef(false);
   const isPlayingTrackRef = useRef<number | null>(null); // 跟踪正在播放的歌曲索引
+  const isMusicListLoadedRef = useRef(false); // 防止重复加载音乐列表
 
   // 初始化音频元素
   useEffect(() => {
@@ -137,12 +139,21 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
 
   // 加载音乐列表
   useEffect(() => {
+    // 防止重复加载（React Strict Mode 会导致组件渲染两次）
+    if (isMusicListLoadedRef.current) {
+      console.log('[useMusicPlayer] 音乐列表已加载，跳过重复加载');
+      return;
+    }
+
     const initializeMusic = async () => {
       try {
+        console.log('[useMusicPlayer] 开始加载音乐列表...');
         setIsLoading(true);
         // 使用新的排序 API 获取音乐列表
         const allMusic = await musicService.getAllMusicSorted('title', 999999);
         setMusicList(allMusic);
+        console.log('[useMusicPlayer] 音乐列表加载完成，长度:', allMusic.length);
+        isMusicListLoadedRef.current = true; // 标记已加载
 
         // 如果有预设的当前播放位置，设置当前歌曲
         if (currentTrack) {
@@ -177,10 +188,8 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
         const result = await response.json();
         console.log('[useMusicPlayer] 后端音乐库刷新成功:', result.count);
 
-        // 获取后端基础URL
-        const backendUrl = window.location.origin.includes(':5173')
-          ? window.location.origin.replace(':5173', ':3000')
-          : `${window.location.protocol}//${window.location.hostname}:3000`;
+        // 使用统一的 URL 拼接逻辑
+        const backendUrl = getBackendUrl();
 
         // 直接使用刷新API返回的音乐列表
         const allMusic = result.data.map((track: BackendTrack) => ({
@@ -215,17 +224,18 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
 
   // 播放/暂停切换
   const togglePlay = useCallback(async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      console.error('[useMusicPlayer] 无法播放: audio元素未初始化');
+      return;
+    }
 
     // 如果正在加载中，不响应播放/暂停操作
     if (isLoading) {
-      console.log('[useMusicPlayer] Ignoring togglePlay during loading');
       return;
     }
 
     // 防止重复调用（200ms内）
     if (isTogglePlayPendingRef.current) {
-      console.log('[useMusicPlayer] TogglePlay already in progress, ignoring');
       return;
     }
 
@@ -263,11 +273,8 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   // 播放指定索引的曲目
   const playTrack = useCallback(
     (index: number) => {
-      if (index < 0 || index >= musicList.length || !audioRef.current) return;
-
-      // 防止重复播放同一首歌（500ms内的重复调用）
-      if (isPlayingTrackRef.current === index) {
-        console.log('[useMusicPlayer] Already playing this track, ignoring duplicate call');
+      if (index < 0 || index >= musicList.length || !audioRef.current) {
+        console.error('[useMusicPlayer] 无法播放: 无效索引或音频元素未初始化');
         return;
       }
 
@@ -280,9 +287,6 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
       setCurrentTrackIndex(index);
       setIsLoading(true);
       isPlayingTrackRef.current = index; // 标记正在播放
-
-      console.log('[useMusicPlayer] Playing track:', track);
-      console.log('[useMusicPlayer] Track URL:', track.url);
 
       // 重置音频元素
       audioRef.current.pause();
@@ -304,11 +308,6 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
           // 保存当前播放的歌曲ID
           localStorage.setItem('musicPlayer_trackId', track.id);
           localStorage.setItem('musicPlayer_time', '0');
-
-          // 延迟清除标记，允许后续的播放操作（如重新点击同一首歌）
-          setTimeout(() => {
-            isPlayingTrackRef.current = null;
-          }, 500);
         })
         .catch((error: unknown) => {
           // 忽略被中断的错误（可能是用户快速切换歌曲导致的）
@@ -335,19 +334,12 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
   const nextTrack = useCallback(() => {
     if (musicList.length === 0) return;
 
-    if (playMode === 'single') {
-      // 单曲循环，重新播放当前歌曲
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    } else if (playMode === 'random') {
+    if (playMode === 'random') {
       // 随机播放
       const randomIndex = Math.floor(Math.random() * musicList.length);
       playTrack(randomIndex);
     } else {
-      // 顺序播放
+      // 顺序播放（包括单曲循环模式）
       const nextIndex = (currentTrackIndex + 1) % musicList.length;
       playTrack(nextIndex);
     }
@@ -411,22 +403,12 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     }
   }, [isMuted]);
 
-  // 格式化时间显示（支持毫秒和秒两种格式）
+  // 格式化时间显示（输入为毫秒）
   const formatTime = useCallback((time: number): string => {
     if (isNaN(time) || time < 0) return '0:00';
 
-    // 检测是否为毫秒（大于10000认为是毫秒）
-    let timeInSeconds: number;
-    if (time > 10000) {
-      // 大于10000认为是毫秒
-      timeInSeconds = time / 1000;
-    } else {
-      // 否则认为是秒
-      timeInSeconds = time;
-    }
-
-    // 确保时间不为负数
-    timeInSeconds = Math.max(0, timeInSeconds);
+    // 将毫秒转换为秒
+    const timeInSeconds = Math.max(0, time / 1000);
 
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
@@ -434,30 +416,56 @@ export const useMusicPlayer = (): UseMusicPlayerReturn => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, []);
 
-  return {
-    // 状态
-    currentTrack,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isMuted,
-    musicList,
-    isLoading,
-    playMode,
+  // 使用 useMemo 缓存返回值，避免不必要的重新渲染
+  const returnValue = useMemo(
+    () => ({
+      // 状态
+      currentTrack,
+      isPlaying,
+      currentTime,
+      duration,
+      volume,
+      isMuted,
+      musicList,
+      isLoading,
+      playMode,
 
-    // 方法
-    togglePlay,
-    playTrack,
-    nextTrack,
-    previousTrack,
-    seekTo,
-    setVolume,
-    toggleMute,
-    setPlayMode,
-    refreshMusicList,
+      // 方法
+      togglePlay,
+      playTrack,
+      nextTrack,
+      previousTrack,
+      seekTo,
+      setVolume,
+      toggleMute,
+      setPlayMode,
+      refreshMusicList,
 
-    // 工具方法
-    formatTime,
-  };
+      // 工具方法
+      formatTime,
+    }),
+    [
+      currentTrack,
+      isPlaying,
+      currentTime,
+      duration,
+      volume,
+      isMuted,
+      musicList,
+      isLoading,
+      playMode,
+      togglePlay,
+      playTrack,
+      nextTrack,
+      previousTrack,
+      seekTo,
+      setVolume,
+      toggleMute,
+      setPlayMode,
+      refreshMusicList,
+      formatTime,
+    ]
+  );
+
+  return returnValue;
 };

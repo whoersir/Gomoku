@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { MusicTrack } from '../../types/musicTypes';
-import { useMusicPlayer } from '../../hooks/useMusicPlayer';
+import { useMusicPlayer } from '../../contexts/MusicProvider';
 import { useFavorites } from '../../hooks/useFavorites';
 import { groupTracksByArtist, getArtistColor } from '../../utils/musicUtils';
 import { pinyin } from 'pinyin-pro';
@@ -44,10 +44,8 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
       try {
         // 转换单个字符的拼音
         const pinyinResult = pinyin(firstChar);
-        console.log(`[拼音调试] 艺术家: ${artistName}, 字符: ${firstChar}, 拼音结果: "${pinyinResult}", 类型: ${typeof pinyinResult}`);
         if (pinyinResult && typeof pinyinResult === 'string' && pinyinResult.length > 0) {
           const letter = pinyinResult.charAt(0).toUpperCase();
-          console.log(`[拼音调试] 提取的首字母: ${letter}`);
           if (/[A-Z]/.test(letter)) {
             return letter;
           }
@@ -100,9 +98,18 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ tracks }) => {
 
   const handlePlayTrack = (track: MusicTrack, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    const index = musicList.findIndex((t) => t.id === track.id);
-    if (index !== -1) {
-      playTrack(index);
+
+    // 使用传入的 tracks prop 来查找索引
+    const index = tracks.findIndex((t) => t.id === track.id);
+
+    // 如果在 tracks 中找不到，尝试在 musicList 中查找
+    let musicListIndex = index;
+    if (index === -1) {
+      musicListIndex = musicList.findIndex((t) => t.id === track.id);
+    }
+
+    if (musicListIndex !== -1) {
+      playTrack(musicListIndex);
     }
   };
 

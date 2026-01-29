@@ -1,6 +1,7 @@
 import { MusicTrack, SearchFilters } from '../types/musicTypes';
 import { presetPlaylist } from '../data/musicPresets';
 import { localMusicService } from './localMusicService';
+import { getBackendUrl } from '../utils/apiConfig';
 
 class MusicService {
   async searchMusic(filters: SearchFilters): Promise<MusicTrack[]> {
@@ -124,10 +125,8 @@ class MusicService {
         });
       }
 
-      // 获取后端基础URL
-      const backendUrl = window.location.origin.includes(':5173')
-        ? window.location.origin.replace(':5173', ':3000')
-        : `${window.location.protocol}//${window.location.hostname}:3000`;
+      // 使用统一的 URL 拼接逻辑
+      const backendUrl = getBackendUrl();
 
       // 转换为前端使用的 MusicTrack 格式
       const tracks = localTracks.map((track: any) => ({
